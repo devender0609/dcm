@@ -17,11 +17,29 @@ body {
 }
 
 .glass {
-  @apply bg-slate-900/70 border border-slate-700/60 backdrop-blur-xl rounded-3xl p-10 shadow-glow;
+  @apply bg-slate-900/75 border border-slate-700/60 backdrop-blur-xl rounded-3xl p-10 shadow-lg;
 }
 
 .gradient-text {
   background: linear-gradient(120deg, #22B8B0, #6C3FA4, #F4B000);
   -webkit-background-clip: text;
   color: transparent;
+}
+
+/* Logo wrapper that blends the white background */
+.logo-wrap {
+  @apply inline-flex items-center justify-center rounded-2xl px-3 py-2;
+  background: radial-gradient(circle at top left, #ffffff40 0, transparent 55%);
+}
+
+/* Make white in the logo blend into the page */
+.logo-merged {
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 10px rgba(15,23,42,0.8));
+}
+
+/* Small utility for subtle labels */
+.badge {
+  @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold 
+         bg-slate-800/80 border border-slate-700/80 uppercase tracking-wide;
 }
