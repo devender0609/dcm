@@ -66,9 +66,10 @@ function computeForPatient(p: PatientInputs): PatientOutputs {
   const t1Flag = t1Hypo === "yes";
   const ageNum = age || 65;
 
-  let label = "Non-operative trial reasonable with close follow-up";
+  let label =
+    "Non-operative trial reasonable with close follow-up and structured surveillance.";
   let risk =
-    "Low–moderate risk of neurological worsening if monitored closely.";
+    "Low–moderate risk of neurological worsening if monitored closely and risk factors remain stable.";
   let benefit =
     "Surgical benefit may be modest; decision should reflect patient goals and risk tolerance.";
   let summary = `Age ${ageNum}, ${sex}, mJOA ${mjoa} (${severity}), symptom duration ≈ ${durationMonths} months, planned levels ${levels}.`;
@@ -85,12 +86,12 @@ function computeForPatient(p: PatientInputs): PatientOutputs {
     label = "Consider surgery / surgery likely beneficial";
     risk = "Mild DCM with risk markers has a meaningful chance of progression.";
     benefit =
-      "Early surgery frequently yields clinically important improvement; careful surveillance is needed if managed non-operatively.";
+      "Early surgery frequently yields clinically important improvement; a structured non-operative trial is reasonable if the patient prefers.";
     summary +=
-      " Fits mild DCM with risk markers where guidelines support either early surgery or a structured non-operative trial.";
+      " Fits mild DCM with risk markers where guidelines support either early surgery or a monitored non-operative trial.";
   }
 
-  // Approximate approach patterns (mock front-end layer; real engine will replace this)
+  // Approximate approach patterns (front-end mock; real engine will replace)
   let baseAnterior = severity === "severe" ? 0.62 : 0.78;
   let basePosterior = severity === "severe" ? 0.75 : 0.63;
   let baseCirc = 0.6;
@@ -133,7 +134,6 @@ export default function Prototype() {
   const [t2Signal, setT2Signal] = useState<"none" | "bright" | "multilevel">(
     "bright"
   );
-
   const [levels, setLevels] = useState("3");
   const [canalRatio, setCanalRatio] = useState("<50%");
   const [opll, setOpll] = useState<YesNo>("no");
@@ -207,7 +207,9 @@ export default function Prototype() {
       return;
     }
 
-    const rows = text.split(/\r?\n/).map((r) => r.split(",").map((s) => s.trim()));
+    const rows = text
+      .split(/\r?\n/)
+      .map((r) => r.split(",").map((s) => s.trim()));
     if (rows.length < 2) {
       setBatchError("CSV must include at least one data row.");
       return;
@@ -238,7 +240,7 @@ export default function Prototype() {
       return;
     }
 
-    let summary: BatchSummary = {
+    const summary: BatchSummary = {
       total: 0,
       surgeryRecommended: 0,
       consider: 0,
@@ -261,9 +263,10 @@ export default function Prototype() {
         t2Signal: (row[t2Idx] as "none" | "bright" | "multilevel") || "bright",
         levels: Number(row[levelsIdx]) || 1,
         canalRatio:
-          (row[canalIdx] as "<50%" | "50–60%" | ">60%") || ("<50%" as "<50%"),
+          (row[canalIdx] as "<50%" | "50–60%" | ">60%") || "<50%",
         opll:
-          (row[opllIdx] as YesNo) && (row[opllIdx] as YesNo).toLowerCase() === "yes"
+          (row[opllIdx] as YesNo) &&
+          (row[opllIdx] as YesNo).toLowerCase() === "yes"
             ? "yes"
             : "no",
         t1Hypo: "no",
@@ -354,7 +357,6 @@ export default function Prototype() {
               Baseline clinical information
             </h2>
 
-            {/* Core inputs */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <label className="block font-semibold mb-1 text-sm">Age</label>
@@ -453,7 +455,7 @@ export default function Prototype() {
                 >
                   <option value="<50%">&lt;50%</option>
                   <option value="50–60%">50–60%</option>
-                  <option value=">60%">&gt;60%</</option>
+                  <option value=">60%">&gt;60%</option>
                 </select>
               </div>
 
@@ -575,7 +577,7 @@ export default function Prototype() {
             </button>
           </section>
 
-          {/* 1. SURGERY RECOMMENDATION */}
+          {/* SURGERY RECOMMENDATION */}
           <section className="glass space-y-4">
             <h2 className="text-lg md:text-xl font-semibold">
               1. Should this patient undergo surgery?
@@ -619,7 +621,7 @@ export default function Prototype() {
             )}
           </section>
 
-          {/* 2. APPROACH COMPARISON + MINI GRAPH */}
+          {/* APPROACH COMPARISON */}
           <section className="glass space-y-4">
             <h2 className="text-lg md:text-xl font-semibold">
               2. If surgery is offered, which approach?
@@ -637,7 +639,9 @@ export default function Prototype() {
                   {approaches.map((k) => {
                     const p = approachResult[k];
                     const isBest = k === bestApproach;
-                    const label = k.charAt(0).toUpperCase() + k.slice(1);
+                    const label =
+                      k.charAt(0).toUpperCase() + k.slice(1);
+
                     return (
                       <div
                         key={k}
@@ -669,7 +673,7 @@ export default function Prototype() {
                   })}
                 </div>
 
-                {/* Simple horizontal bar graph */}
+                {/* Simple bar graph */}
                 <div className="mt-4 space-y-2">
                   <p className="text-xs font-semibold text-slate-600">
                     P(MCID) by approach
@@ -677,8 +681,10 @@ export default function Prototype() {
                   <div className="space-y-2">
                     {approaches.map((k) => {
                       const p = approachResult[k];
-                      const label = k.charAt(0).toUpperCase() + k.slice(1);
+                      const label =
+                        k.charAt(0).toUpperCase() + k.slice(1);
                       const pct = Math.round(p * 100);
+
                       return (
                         <div key={k} className="flex items-center gap-3">
                           <div className="w-20 text-xs text-slate-600">
