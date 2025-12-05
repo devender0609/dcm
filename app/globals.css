@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-gradient: radial-gradient(circle at top left, #22B8B0 0, transparent 50%),
+                 radial-gradient(circle at top right, #6C3FA4 0, transparent 55%),
+                 radial-gradient(circle at bottom, #0060A8 0, transparent 60%);
+}
+
+body {
+  @apply bg-slate-950 text-slate-100;
+  background-image: var(--bg-gradient);
+  background-attachment: fixed;
+  background-size: cover;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.glass {
+  @apply bg-slate-900/70 border border-slate-700/60 backdrop-blur-xl rounded-3xl p-10 shadow-glow;
+}
+
+.gradient-text {
+  background: linear-gradient(120deg, #22B8B0, #6C3FA4, #F4B000);
+  -webkit-background-clip: text;
+  color: transparent;
+}
