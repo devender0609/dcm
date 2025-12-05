@@ -42,6 +42,63 @@ interface BatchSummary {
   circumferential: number;
 }
 
+/**
+ * Simple heuristic (literature-informed but approximate) mapping
+ * to 0–100 “risk without surgery” and “benefit with surgery” bands.
+ */
+function estimateRiskBenefit(
+  p: PatientInputs
+): { riskScore: number; benefitScore: number } {
+  let risk: number;
+  let benefit: number;
+
+  switch (p.severity) {
+    case "mild":
+      risk = 20;
+      benefit = 40;
+      break;
+    case "moderate":
+      risk = 40;
+      benefit = 65;
+      break;
+    case "severe":
+      risk = 60;
+      benefit = 80;
+      break;
+  }
+
+  if (p.durationMonths >= 12) {
+    risk += 5;
+    benefit += 3;
+  } else if (p.durationMonths < 3) {
+    risk -= 3;
+    benefit += 2;
+  }
+
+  if (p.t2Signal === "bright") {
+    risk += 5;
+    benefit += 3;
+  } else if (p.t2Signal === "multilevel") {
+    risk += 10;
+    benefit += 5;
+  }
+
+  if (p.canalRatio === ">60%") {
+    risk += 5;
+    benefit += 3;
+  }
+
+  if (p.opll === "yes") {
+    risk += 3;
+    benefit += 2;
+  }
+
+  risk = Math.min(95, Math.max(5, risk));
+  benefit = Math.min(95, Math.max(10, benefit));
+
+  return { riskScore: risk, benefitScore: benefit };
+}
+
 function computeForPatient(p: PatientInputs): PatientOutputs {
   const {
     age,
@@ -91,7 +148,7 @@ function computeForPatient(p: PatientInputs): PatientOutputs {
       " Fits mild DCM with risk markers where guidelines support either early surgery or a monitored non-operative trial.";
   }
 
-  // Approximate approach patterns (front-end mock; real engine will replace)
+  // Approximate approach patterns (front-end mock)
   let baseAnterior = severity === "severe" ? 0.62 : 0.78;
   let basePosterior = severity === "severe" ? 0.75 : 0.63;
   let baseCirc = 0.6;
@@ -153,6 +210,11 @@ export default function Prototype() {
   const [surgerySummary, setSurgerySummary] = useState("");
   const [riskBand, setRiskBand] = useState("");
   const [benefitBand, setBenefitBand] = useState("");
+  const [uncertaintyLevel, setUncertaintyLevel] = useState<
+    "" | "low" | "moderate" | "high"
+  >("");
+  const [riskScore, setRiskScore] = useState<number | null>(null);
+  const [benefitScore, setBenefitScore] = useState<number | null>(null);
 
   // Batch state
   const [batchCsv, setBatchCsv] = useState("");
@@ -189,6 +251,24 @@ export default function Prototype() {
     setSurgerySummary(summary);
     setApproachResult(approachResult);
     setHasRun(true);
+
+    // Confidence / uncertainty band
+    const probsSorted = Object.values(approachResult).sort((a, b) => b - a);
+    const delta = probsSorted[0] - probsSorted[1];
+    let unc: "low" | "moderate" | "high";
+    if (delta >= 0.15) {
+      unc = "low";
+    } else if (delta >= 0.08) {
+      unc = "moderate";
+    } else {
+      unc = "high";
+    }
+    setUncertaintyLevel(unc);
+
+    // Risk vs benefit dial values
+    const { riskScore, benefitScore } = estimateRiskBenefit(inputs);
+    setRiskScore(riskScore);
+    setBenefitScore(benefitScore);
   };
 
   const bestApproach =
@@ -299,6 +379,24 @@ export default function Prototype() {
     setBatchSummary(summary);
   };
 
+  const handlePrintSummary = () => {
+    if (typeof window !== "undefined") {
+      window.print();
+    }
+  };
+
+  const uncertaintyLabel =
+    uncertaintyLevel === ""
+      ? ""
+      : `Uncertainty: ${uncertaintyLevel}`;
+
+  const uncertaintyClass =
+    uncertaintyLevel === "low"
+      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+      : uncertaintyLevel === "moderate"
+      ? "bg-amber-50 text-amber-700 border-amber-200"
+      : "bg-rose-50 text-rose-700 border-rose-200";
+
   return (
     <main className="px-6 md:px-10 pt-8 md:pt-10 pb-20 max-w-5xl mx-auto space-y-8">
       {/* Back + title */}
@@ -358,6 +456,7 @@ export default function Prototype() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+              {/* age / sex / mJOA / severity */}
               <div>
                 <label className="block font-semibold mb-1 text-sm">Age</label>
                 <input
@@ -403,6 +502,7 @@ export default function Prototype() {
                 </select>
               </div>
 
+              {/* symptom duration / T2 / levels / canal ratio */}
               <div>
                 <label className="block font-semibold mb-1 text-sm">
                   Symptom duration (months)
@@ -459,6 +559,7 @@ export default function Prototype() {
                 </select>
               </div>
 
+              {/* OPLL / T1 hypo */}
               <div>
                 <label className="block font-semibold mb-1 text-sm">
                   OPLL present
@@ -603,13 +704,54 @@ export default function Prototype() {
                       {riskBand}
                     </p>
                     <p>
-                      <span className="font-semibold">Expected benefit:</span>{" "}
+                      <span className="font-semibold">
+                        Expected benefit with surgery:
+                      </span>{" "}
                       {benefitBand}
                     </p>
                   </div>
                 </div>
 
                 <p>{surgerySummary}</p>
+
+                {/* Risk vs benefit dial */}
+                {riskScore !== null && benefitScore !== null && (
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
+                    <div className="rounded-2xl border border-rose-100 bg-rose-50/70 p-3">
+                      <p className="font-semibold text-rose-800 mb-1">
+                        Risk of neurological worsening without surgery
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-2.5 rounded-full bg-rose-100 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-rose-500"
+                            style={{ width: `${riskScore}%` }}
+                          />
+                        </div>
+                        <span className="w-12 text-right font-semibold text-rose-800">
+                          {riskScore}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3">
+                      <p className="font-semibold text-emerald-800 mb-1">
+                        Expected chance of meaningful improvement with surgery
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-2.5 rounded-full bg-emerald-100 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-emerald-500"
+                            style={{ width: `${benefitScore}%` }}
+                          />
+                        </div>
+                        <span className="w-12 text-right font-semibold text-emerald-800">
+                          {benefitScore}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <p className="text-xs text-slate-500">
                   Logic approximates AO Spine / WFNS guideline groups and
@@ -623,9 +765,18 @@ export default function Prototype() {
 
           {/* APPROACH COMPARISON */}
           <section className="glass space-y-4">
-            <h2 className="text-lg md:text-xl font-semibold">
-              2. If surgery is offered, which approach?
-            </h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg md:text-xl font-semibold">
+                2. If surgery is offered, which approach?
+              </h2>
+              {hasRun && approachResult && uncertaintyLevel && (
+                <span
+                  className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-semibold ${uncertaintyClass}`}
+                >
+                  {uncertaintyLabel}
+                </span>
+              )}
+            </div>
 
             {!hasRun || !approachResult ? (
               <p className="text-sm text-slate-600">
@@ -713,9 +864,23 @@ export default function Prototype() {
 
             <p className="mt-2 text-xs text-slate-500">
               Approach patterns reflect known prognostic factors (severity,
-              duration, age, smoking, canal compromise, OPLL) and will later be
-              replaced by your fully trained model.
+              duration, age, smoking, canal compromise, OPLL, MRI signal) and
+              will later be replaced by your fully trained model.
             </p>
+
+            {/* PDF / print summary */}
+            <div className="mt-4">
+              <button
+                onClick={handlePrintSummary}
+                className="inline-flex items-center justify-center bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-slate-800 transition"
+              >
+                Download / print summary (PDF)
+              </button>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Uses the browser’s print-to-PDF function to create a one-page
+                summary of the current patient inputs and recommendations.
+              </p>
+            </div>
           </section>
         </>
       )}
