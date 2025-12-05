@@ -35,14 +35,14 @@ export default function Home() {
             DCM Surgical Decision Support
           </h2>
           <p className="text-sm md:text-base text-slate-700 max-w-3xl">
-            This prototype is being developed to support discussions about{" "}
+            This tool is being developed to support discussions about{" "}
             <span className="font-semibold">
               when to offer surgery and which approach may provide the highest
               chance of meaningful improvement
             </span>{" "}
-            in patients with degenerative cervical myelopathy (DCM). It is
-            grounded in AO Spine / WFNS guideline concepts and major outcome
-            cohorts and will later be calibrated on prospective Ascension Seton
+            in degenerative cervical myelopathy (DCM). It is grounded in AO
+            Spine / WFNS guideline concepts and major surgical outcome cohorts,
+            and will be calibrated on prospectively collected Ascension Seton
             data.
           </p>
         </div>
@@ -94,16 +94,15 @@ export default function Home() {
                 after anterior, posterior, and circumferential procedures.
               </li>
               <li>
-                Patterns are based on published prognostic factors: worse
-                baseline severity, longer duration, older age, smoking, and high
-                canal compromise predict lower odds of good outcome.{" "}
+                Patterns reflect prognostic factors such as baseline severity,
+                duration, age, smoking, canal compromise, and MRI signal.{" "}
                 <span className="text-xs">
                   (Tetreault et al., Global Spine J 2017; Merali et al., PLoS
                   One 2019)
                 </span>
               </li>
               <li>
-                Literature-based rules (e.g. kyphosis, long multilevel disease,
+                Literature-based rules (e.g., kyphosis, multilevel disease,
                 OPLL) can override small model differences when appropriate.
               </li>
             </ul>
@@ -115,17 +114,12 @@ export default function Home() {
             href="/prototype"
             className="inline-flex items-center justify-center bg-teal-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-teal-700 transition text-sm md:text-base"
           >
-            Launch single-patient prototype →
+            Launch single-patient view →
           </Link>
-          <p className="text-xs md:text-sm text-slate-600 max-w-xl">
-            For demonstration only. Outputs are intended to support structured
-            clinical reasoning and discussion, not to replace clinical judgment
-            or guideline-based decision-making.
-          </p>
         </div>
       </section>
 
-      {/* KEY REFS – concise, inline on page */}
+      {/* KEY REFS */}
       <section className="glass space-y-3 text-xs md:text-sm text-slate-700">
         <h3 className="text-sm md:text-base font-semibold">
           Key references informing the current logic
@@ -145,7 +139,7 @@ export default function Home() {
               Change in Function, Pain, and Quality of Life Following Operative
               Treatment for DCM.
             </span>{" "}
-            Global Spine J. 2017 (systematic review / meta-analysis).
+            Global Spine J. 2017.
           </li>
           <li>
             Merali Z, et al.{" "}

@@ -3,15 +3,31 @@
 import { useState } from "react";
 
 type Severity = "mild" | "moderate" | "severe";
+type YesNo = "yes" | "no";
 type ApproachKey = "anterior" | "posterior" | "circumferential";
 type ApproachResult = Record<ApproachKey, number>;
 
 export default function Prototype() {
+  // Core
   const [age, setAge] = useState("65");
+  const [sex, setSex] = useState<"M" | "F">("M");
   const [severity, setSeverity] = useState<Severity>("moderate");
   const [mjoa, setMjoa] = useState("13");
   const [duration, setDuration] = useState("12");
   const [t2Signal, setT2Signal] = useState("bright");
+
+  const [levels, setLevels] = useState("3");
+  const [canalRatio, setCanalRatio] = useState("<50%");
+  const [opll, setOpll] = useState<YesNo>("no");
+  const [t1Hypo, setT1Hypo] = useState<YesNo>("no");
+
+  // Additional modifiers
+  const [smoker, setSmoker] = useState<YesNo>("no");
+  const [psych, setPsych] = useState<YesNo>("no");
+  const [gait, setGait] = useState<YesNo>("yes");
+  const [ndi, setNdi] = useState("40");
+  const [sf36pcs, setSf36pcs] = useState("32");
+  const [sf36mcs, setSf36mcs] = useState("45");
 
   const [hasRun, setHasRun] = useState(false);
   const [approachResult, setApproachResult] = useState<ApproachResult | null>(
@@ -28,43 +44,63 @@ export default function Prototype() {
     "circumferential",
   ];
 
-  const runPrototype = () => {
+  const runRecommendation = () => {
     const dur = Number(duration) || 0;
     const m = Number(mjoa) || 18;
+    const lvl = Number(levels) || 1;
     const hasCordSignal = t2Signal !== "none";
     const moderateOrSevere = severity !== "mild";
+    const highCanal = canalRatio === ">60%";
+    const longSymptoms = dur >= 6;
+    const hasOPLL = opll === "yes";
 
     let label = "Non-operative trial reasonable with close follow-up";
     let risk =
-      "Observational cohorts suggest low–moderate risk of neurological worsening if monitored closely.";
+      "Low–moderate risk of neurological worsening if monitored closely.";
     let benefit =
       "Surgical benefit may be modest; decision should reflect patient goals and risk tolerance.";
-    let summary = `Baseline mJOA ${m} (${severity}), symptom duration about ${dur} months.`;
+    let summary = `Age ${age}, ${sex}, mJOA ${m} (${severity}), symptom duration ≈ ${dur} months, ${lvl} planned levels.`;
 
-    // Simple rule layer approximating guideline logic
-    if (moderateOrSevere && (hasCordSignal || dur >= 6)) {
+    if (moderateOrSevere && (hasCordSignal || longSymptoms || highCanal)) {
       label = "Surgery recommended";
       risk =
-        "Moderate–severe DCM and/or cord signal change carry a substantial risk of neurological progression without surgery.";
+        "Moderate–severe DCM and/or cord signal change, high canal compromise, or longer duration carry substantial risk of progression without surgery.";
       benefit =
-        "Most patients in similar cohorts improve neurologically after decompression, with acceptable complication rates.";
+        "Most similar patients improve neurologically after decompression with acceptable complication rates.";
       summary +=
-        " Features fit guideline groups in which surgery is generally recommended.";
-    } else if (severity === "mild" && (hasCordSignal || dur >= 6)) {
+        " Profile aligns with guideline groups where surgery is generally recommended.";
+    } else if (severity === "mild" && (hasCordSignal || longSymptoms)) {
       label = "Consider surgery / surgery likely beneficial";
-      risk =
-        "Mild DCM with risk markers has an increased chance of progression over time.";
+      risk = "Mild DCM with risk markers has a meaningful chance of progression.";
       benefit =
-        "Many patients achieve clinically meaningful improvement with early surgery; close follow-up is required if managed non-operatively.";
+        "Early surgery frequently yields clinically important improvement; careful surveillance is needed if managed non-operatively.";
       summary +=
-        " This profile lies in the range where guidelines support either early surgery or a structured non-operative trial.";
+        " Fits mild DCM with risk markers where guidelines support either early surgery or a structured non-operative trial.";
     }
 
-    // Mock approach probabilities: this will later be replaced by your real model.
-    const baseAnterior = severity === "severe" ? 0.62 : 0.78;
-    const basePosterior = severity === "severe" ? 0.75 : 0.63;
-    const baseCirc = 0.6;
-    const jitter = () => (Math.random() - 0.5) * 0.06;
+    // Approximate approach patterns (mock for front-end only)
+    const ageNum = Number(age) || 65;
+    const smokerFlag = smoker === "yes";
+    const severe = severity === "severe";
+
+    let baseAnterior = severe ? 0.62 : 0.78;
+    let basePosterior = severe ? 0.75 : 0.63;
+    let baseCirc = 0.6;
+
+    if (lvl >= 4 || hasOPLL) {
+      // long-segment / OPLL → relative posterior advantage
+      basePosterior += 0.05;
+      baseAnterior -= 0.04;
+    }
+
+    if (ageNum > 75 || smokerFlag) {
+      // older/smoker → slightly lower all
+      baseAnterior -= 0.03;
+      basePosterior -= 0.03;
+      baseCirc -= 0.03;
+    }
+
+    const jitter = () => (Math.random() - 0.5) * 0.05;
 
     const result: ApproachResult = {
       anterior: Math.min(0.95, Math.max(0.3, baseAnterior + jitter())),
@@ -89,14 +125,16 @@ export default function Prototype() {
   return (
     <main className="px-6 md:px-10 pt-8 md:pt-10 pb-20 max-w-5xl mx-auto space-y-8">
       <h1 className="text-2xl md:text-3xl font-bold gradient-text">
-        DCM Prototype — Single Patient View
+        DCM – Single Patient View
       </h1>
 
-      {/* INPUT CARD */}
+      {/* INPUTS */}
       <section className="glass space-y-5">
         <h2 className="text-lg md:text-xl font-semibold">
-          Enter key baseline information
+          Baseline clinical information
         </h2>
+
+        {/* Core inputs */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
           <div>
             <label className="block font-semibold mb-1 text-sm">Age</label>
@@ -105,6 +143,18 @@ export default function Prototype() {
               onChange={(e) => setAge(e.target.value)}
               className="w-full p-2 rounded border border-slate-300 bg-white"
             />
+          </div>
+
+          <div>
+            <label className="block font-semibold mb-1 text-sm">Sex</label>
+            <select
+              value={sex}
+              onChange={(e) => setSex(e.target.value as "M" | "F")}
+              className="w-full p-2 rounded border border-slate-300 bg-white"
+            >
+              <option value="M">M</option>
+              <option value="F">F</option>
+            </select>
           </div>
 
           <div>
@@ -154,20 +204,147 @@ export default function Prototype() {
               <option value="multilevel">Multilevel / extensive</option>
             </select>
           </div>
+
+          <div>
+            <label className="block font-semibold mb-1 text-sm">
+              Planned operated levels
+            </label>
+            <input
+              value={levels}
+              onChange={(e) => setLevels(e.target.value)}
+              className="w-full p-2 rounded border border-slate-300 bg-white"
+            />
+          </div>
+
+          <div>
+            <label className="block font-semibold mb-1 text-sm">
+              Canal occupying ratio
+            </label>
+            <select
+              value={canalRatio}
+              onChange={(e) => setCanalRatio(e.target.value)}
+              className="w-full p-2 rounded border border-slate-300 bg-white"
+            >
+              <option value="<50%">&lt;50%</option>
+              <option value="50–60%">50–60%</option>
+              <option value=">60%">&gt;60%</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block font-semibold mb-1 text-sm">
+              OPLL present
+            </label>
+            <select
+              value={opll}
+              onChange={(e) => setOpll(e.target.value as YesNo)}
+              className="w-full p-2 rounded border border-slate-300 bg-white"
+            >
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block font-semibold mb-1 text-sm">
+              T1 hypointensity
+            </label>
+            <select
+              value={t1Hypo}
+              onChange={(e) => setT1Hypo(e.target.value as YesNo)}
+              className="w-full p-2 rounded border border-slate-300 bg-white"
+            >
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Additional factors */}
+        <div className="mt-4 space-y-3">
+          <p className="text-sm font-semibold">Additional factors (optional)</p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <label className="block font-semibold mb-1 text-sm">Smoker</label>
+              <select
+                value={smoker}
+                onChange={(e) => setSmoker(e.target.value as YesNo)}
+                className="w-full p-2 rounded border border-slate-300 bg-white"
+              >
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-semibold mb-1 text-sm">
+                Psychiatric disorder
+              </label>
+              <select
+                value={psych}
+                onChange={(e) => setPsych(e.target.value as YesNo)}
+                className="w-full p-2 rounded border border-slate-300 bg-white"
+              >
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-semibold mb-1 text-sm">
+                Gait impairment
+              </label>
+              <select
+                value={gait}
+                onChange={(e) => setGait(e.target.value as YesNo)}
+                className="w-full p-2 rounded border border-slate-300 bg-white"
+              >
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-semibold mb-1 text-sm">
+                Baseline NDI
+              </label>
+              <input
+                value={ndi}
+                onChange={(e) => setNdi(e.target.value)}
+                className="w-full p-2 rounded border border-slate-300 bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="block font-semibold mb-1 text-sm">
+                SF-36 PCS
+              </label>
+              <input
+                value={sf36pcs}
+                onChange={(e) => setSf36pcs(e.target.value)}
+                className="w-full p-2 rounded border border-slate-300 bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="block font-semibold mb-1 text-sm">
+                SF-36 MCS
+              </label>
+              <input
+                value={sf36mcs}
+                onChange={(e) => setSf36mcs(e.target.value)}
+                className="w-full p-2 rounded border border-slate-300 bg-white"
+              />
+            </div>
+          </div>
         </div>
 
         <button
-          onClick={runPrototype}
-          className="mt-2 inline-flex items-center justify-center bg-teal-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-teal-700 transition"
+          onClick={runRecommendation}
+          className="mt-4 inline-flex items-center justify-center bg-teal-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-teal-700 transition"
         >
-          Run mock recommendation
+          Run recommendation
         </button>
-
-        <p className="mt-2 text-xs text-slate-600 max-w-xl">
-          Prototype only: logic is a simplified representation of guideline
-          concepts and surgical outcome data. Final engine will call your
-          trained model.
-        </p>
       </section>
 
       {/* 1. SURGERY RECOMMENDATION */}
@@ -178,7 +355,8 @@ export default function Prototype() {
 
         {!hasRun ? (
           <p className="text-sm text-slate-600">
-            Enter patient details and click <strong>Run mock recommendation</strong>.
+            Enter baseline information and select{" "}
+            <strong>Run recommendation</strong>.
           </p>
         ) : (
           <div className="space-y-3 text-sm text-slate-700">
@@ -202,9 +380,9 @@ export default function Prototype() {
             <p>{surgerySummary}</p>
 
             <p className="text-xs text-slate-500">
-              Based on AO Spine / WFNS guidelines and major outcome cohorts
-              (Fehlings et al., Global Spine J 2017; Tetreault et al., Global
-              Spine J 2017; Merali et al., PLoS One 2019).
+              Logic approximates AO Spine / WFNS guideline groups and outcome
+              data for DCM (Fehlings et al., Global Spine J 2017; Tetreault et
+              al., Global Spine J 2017; Merali et al., PLoS One 2019).
             </p>
           </div>
         )}
@@ -218,8 +396,8 @@ export default function Prototype() {
 
         {!hasRun || !approachResult ? (
           <p className="text-sm text-slate-600">
-            Run the recommendation above to view approximate probabilities of
-            achieving mJOA MCID with each approach.
+            After running the recommendation above, approximate probabilities of
+            achieving mJOA MCID with each approach will appear here.
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -245,12 +423,11 @@ export default function Prototype() {
                   {isBest ? (
                     <p className="text-xs text-teal-800 font-semibold">
                       Highest estimated chance of clinically meaningful mJOA
-                      improvement if surgery is performed.
+                      improvement.
                     </p>
                   ) : (
                     <p className="text-xs text-slate-600">
-                      Lower modeled probability compared with the leading
-                      approach.
+                      Lower modeled probability than the leading approach.
                     </p>
                   )}
                 </div>
@@ -260,10 +437,9 @@ export default function Prototype() {
         )}
 
         <p className="mt-2 text-xs text-slate-500">
-          Approach-level patterns are inspired by published prognostic factors
-          (baseline severity, duration, age, smoking, canal compromise, and MRI
-          signal) but this front-end currently uses mock probabilities for
-          demonstration.
+          Approach patterns reflect known prognostic factors (severity,
+          duration, age, smoking, canal compromise, OPLL), and will later be
+          replaced by your fully trained model.
         </p>
       </section>
     </main>

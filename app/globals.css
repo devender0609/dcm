@@ -3,22 +3,22 @@
 @tailwind utilities;
 
 :root {
-  --bg-gradient: radial-gradient(circle at top left, #e0f7fa 0, transparent 55%),
-                 radial-gradient(circle at top right, #ede7f6 0, transparent 55%),
-                 radial-gradient(circle at bottom, #fff3e0 0, transparent 60%);
+  --bg-gradient: radial-gradient(circle at top left, rgba(224, 247, 250, 0.4) 0, transparent 55%),
+                 radial-gradient(circle at top right, rgba(237, 231, 246, 0.4) 0, transparent 55%),
+                 radial-gradient(circle at bottom, rgba(255, 243, 224, 0.4) 0, transparent 60%);
 }
 
-/* Light overall background so the logo's white edges disappear */
+/* Light background so the logo white blends in */
 body {
   @apply text-slate-900;
-  background-color: #f5f7fb;
+  background-color: #ffffff;
   background-image: var(--bg-gradient);
   background-attachment: fixed;
   background-size: cover;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Main card style */
+/* Main card */
 .glass {
   @apply bg-white/95 border border-slate-200 rounded-3xl p-8 md:p-10 shadow-lg;
 }
@@ -30,12 +30,12 @@ body {
   color: transparent;
 }
 
-/* Logo wrapper – white on white so no visible border */
+/* Logo: no visible border, blended ink */
 .logo-wrap {
-  @apply inline-flex items-center justify-center rounded-2xl px-2 py-1 bg-white shadow-md;
+  @apply inline-flex items-center justify-center;
+  background: transparent;
 }
 
-/* Let logo ink blend a bit into background */
 .logo-merged {
   mix-blend-mode: multiply;
   image-rendering: auto;
