@@ -42,36 +42,169 @@ interface BatchSummary {
   circumferential: number;
 }
 
-// Map mJOA -> AO Spine / WFNS severity band
+// -----------------------------
+// Shared logic with Python engine
+// -----------------------------
+
 function deriveSeverityFromMJOA(mjoa: number): Severity {
   if (mjoa >= 15) return "mild";
   if (mjoa >= 12) return "moderate";
   return "severe";
 }
 
-/**
- * Simple heuristic (literature-informed but approximate) mapping
- * to 0–100 “risk without surgery” and “benefit with surgery” bands.
- */
+function classifyRiskGroup(p: PatientInputs, severity: Severity) {
+  const hasCordSignal = p.t2Signal === "bright" || p.t2Signal === "multilevel";
+  const longSymptoms = p.durationMonths >= 6;
+  const veryLong = p.durationMonths >= 12;
+  const highCanal = p.canalRatio === ">60%";
+  const multilevel = p.levels >= 3;
+
+  let label =
+    "Non-operative trial reasonable with close follow-up and structured surveillance.";
+  let risk =
+    "Low–moderate short-term risk of neurological worsening with careful monitoring, assuming no new red-flag features develop.";
+  let benefit =
+    "Surgical benefit may be modest in mild, stable disease. Shared decision-making is important.";
+
+  if (
+    (severity === "moderate" || severity === "severe") &&
+    (hasCordSignal || longSymptoms || highCanal || multilevel)
+  ) {
+    label = "Surgery recommended";
+    risk =
+      "Moderate–severe DCM with cord signal change, extended symptoms, multilevel stenosis or high canal occupying ratio carries substantial risk of progression without surgery.";
+    benefit =
+      "Most patients in similar cohorts gain clinically meaningful mJOA and functional improvement following decompression, with acceptable complication rates.";
+  } else if (
+    severity === "mild" &&
+    (hasCordSignal || longSymptoms || highCanal)
+  ) {
+    label = "Consider surgery / surgery likely beneficial";
+    risk =
+      "Mild DCM with MRI or duration risk markers has a meaningful chance of progression over time.";
+    benefit =
+      "Early decompression often yields clinically important improvement, but a monitored non-operative trial is reasonable if symptoms are stable and the patient prefers to delay surgery.";
+  }
+
+  return { label, risk, benefit };
+}
+
+function baselineMCIDBySeverity(severity: Severity): number {
+  if (severity === "mild") return 0.65;
+  if (severity === "moderate") return 0.55;
+  return 0.45;
+}
+
+function approachMCIDAdjustments(
+  p: PatientInputs,
+  severity: Severity,
+  baseProb: number
+): ApproachResult {
+  let probs: ApproachResult = {
+    anterior: baseProb,
+    posterior: baseProb,
+    circumferential: baseProb - 0.03, // generally for more complex cases
+  };
+
+  const hasCordSignal = p.t2Signal === "bright" || p.t2Signal === "multilevel";
+  const multilevel = p.levels >= 3;
+  const longSymptoms = p.durationMonths >= 6;
+  const veryLong = p.durationMonths >= 12;
+  const highCanal = p.canalRatio === ">60%";
+  const midCanal = p.canalRatio === "50–60%";
+  const hasOPLL = p.opll === "yes";
+  const elderly = p.age >= 75;
+  const highBurden =
+    elderly || p.smoker === "yes" || p.t1Hypo === "yes" || hasCordSignal;
+
+  // Mild, non-OPLL, short segment, lower canal compromise → anterior modestly favoured
+  if (severity === "mild" && !hasOPLL && !multilevel && !highCanal) {
+    probs.anterior += 0.05;
+    probs.posterior += 0.0;
+    probs.circumferential -= 0.02;
+  }
+
+  // Multilevel disease or very long duration → posterior more attractive
+  if (multilevel || veryLong) {
+    probs.posterior += 0.05;
+    probs.anterior -= 0.02;
+    probs.circumferential += 0.02;
+  }
+
+  // OPLL-specific adjustments
+  if (hasOPLL) {
+    if (highCanal) {
+      // High canal occupying ratio OPLL: anterior has higher recovery but more complications
+      probs.anterior += 0.1;
+      probs.posterior += 0.03;
+    } else if (midCanal) {
+      // Intermediate canal occupying ratio: anterior and posterior similar
+      probs.anterior += 0.03;
+      probs.posterior += 0.03;
+    } else {
+      // Lower canal occupying ratio: posterior often favoured due to complication profile
+      probs.posterior += 0.05;
+      probs.anterior += 0.02;
+    }
+  }
+
+  // Multilevel T2 signal → posterior and circumferential slightly favoured
+  if (p.t2Signal === "multilevel") {
+    probs.posterior += 0.03;
+    probs.anterior -= 0.01;
+    probs.circumferential += 0.01;
+  }
+
+  // Long symptoms in non-OPLL moderate/severe: small downshift
+  if (longSymptoms && !hasOPLL && (severity === "moderate" || severity === "severe")) {
+    probs.anterior -= 0.01;
+    probs.posterior -= 0.01;
+  }
+
+  // Global downshift for frail/high burden
+  if (highBurden) {
+    (["anterior", "posterior", "circumferential"] as ApproachKey[]).forEach(
+      (k) => {
+        probs[k] -= 0.03;
+      }
+    );
+  }
+
+  // Clamp to [0.25, 0.9]
+  (["anterior", "posterior", "circumferential"] as ApproachKey[]).forEach(
+    (k) => {
+      probs[k] = Math.max(0.25, Math.min(0.9, probs[k]));
+    }
+  );
+
+  return probs;
+}
+
+function computeUncertaintyLevel(approachResult: ApproachResult): "" | "low" | "moderate" | "high" {
+  const vals = Object.values(approachResult).sort((a, b) => b - a);
+  if (vals.length < 2) return "high";
+  const delta = vals[0] - vals[1];
+  if (delta >= 0.15) return "low";
+  if (delta >= 0.08) return "moderate";
+  return "high";
+}
+
 function estimateRiskBenefit(
-  p: PatientInputs
+  p: PatientInputs,
+  severity: Severity
 ): { riskScore: number; benefitScore: number } {
   let risk: number;
   let benefit: number;
 
-  switch (p.severity) {
-    case "mild":
-      risk = 20;
-      benefit = 40;
-      break;
-    case "moderate":
-      risk = 40;
-      benefit = 65;
-      break;
-    case "severe":
-      risk = 60;
-      benefit = 80;
-      break;
+  if (severity === "mild") {
+    risk = 20;
+    benefit = 40;
+  } else if (severity === "moderate") {
+    risk = 40;
+    benefit = 65;
+  } else {
+    risk = 60;
+    benefit = 80;
   }
 
   if (p.durationMonths >= 12) {
@@ -100,91 +233,15 @@ function estimateRiskBenefit(
     benefit += 2;
   }
 
-  risk = Math.min(95, Math.max(5, risk));
-  benefit = Math.min(95, Math.max(10, benefit));
+  risk = Math.max(5, Math.min(95, risk));
+  benefit = Math.max(10, Math.min(95, benefit));
 
   return { riskScore: risk, benefitScore: benefit };
 }
 
-function computeForPatient(p: PatientInputs): PatientOutputs {
-  const {
-    age,
-    sex,
-    severity,
-    mjoa,
-    durationMonths,
-    t2Signal,
-    levels,
-    canalRatio,
-    opll,
-    t1Hypo,
-    smoker,
-  } = p;
-
-  const hasCordSignal = t2Signal !== "none";
-  const moderateOrSevere = severity !== "mild";
-  const longSymptoms = durationMonths >= 6;
-  const highCanal = canalRatio === ">60%";
-  const hasOPLL = opll === "yes";
-  const smokerFlag = smoker === "yes";
-  const t1Flag = t1Hypo === "yes";
-  const ageNum = age || 65;
-
-  let label =
-    "Non-operative trial reasonable with close follow-up and structured surveillance.";
-  let risk =
-    "Low–moderate risk of neurological worsening if monitored closely and risk factors remain stable.";
-  let benefit =
-    "Surgical benefit may be modest; decision should reflect patient goals and risk tolerance.";
-  let summary = `Age ${ageNum}, ${sex}, mJOA ${mjoa} (${severity}), symptom duration ≈ ${durationMonths} months, planned levels ${levels}.`;
-
-  if (moderateOrSevere && (hasCordSignal || longSymptoms || highCanal)) {
-    label = "Surgery recommended";
-    risk =
-      "Moderate–severe DCM and/or cord signal change, high canal compromise, or longer duration carry substantial risk of progression without surgery.";
-    benefit =
-      "Most similar patients improve neurologically after decompression with acceptable complication rates.";
-    summary +=
-      " Profile aligns with guideline groups where surgery is generally recommended.";
-  } else if (severity === "mild" && (hasCordSignal || longSymptoms)) {
-    label = "Consider surgery / surgery likely beneficial";
-    risk = "Mild DCM with risk markers has a meaningful chance of progression.";
-    benefit =
-      "Early surgery frequently yields clinically important improvement; a structured non-operative trial is reasonable if the patient prefers.";
-    summary +=
-      " Fits mild DCM with risk markers where guidelines support either early surgery or a monitored non-operative trial.";
-  }
-
-  // Approximate approach patterns (front-end mock)
-  let baseAnterior = severity === "severe" ? 0.62 : 0.78;
-  let basePosterior = severity === "severe" ? 0.75 : 0.63;
-  let baseCirc = 0.6;
-
-  if (levels >= 4 || hasOPLL) {
-    basePosterior += 0.05;
-    baseAnterior -= 0.04;
-  }
-
-  if (ageNum > 75 || smokerFlag) {
-    baseAnterior -= 0.03;
-    basePosterior -= 0.03;
-    baseCirc -= 0.03;
-  }
-
-  if (t1Flag || t2Signal === "multilevel") {
-    baseCirc -= 0.03;
-  }
-
-  const jitter = () => (Math.random() - 0.5) * 0.05;
-
-  const approachResult: ApproachResult = {
-    anterior: Math.min(0.95, Math.max(0.3, baseAnterior + jitter())),
-    posterior: Math.min(0.95, Math.max(0.3, basePosterior + jitter())),
-    circumferential: Math.min(0.95, Math.max(0.3, baseCirc + jitter())),
-  };
-
-  return { label, risk, benefit, summary, approachResult };
-}
+// -----------------------------
+// React component
+// -----------------------------
 
 export default function Prototype() {
   const [activeTab, setActiveTab] = useState<Tab>("single");
@@ -253,33 +310,25 @@ export default function Prototype() {
       smoker,
     };
 
-    const { label, risk, benefit, summary, approachResult } =
-      computeForPatient(inputs);
+    const rg = classifyRiskGroup(inputs, derivedSeverity);
+    const baseProb = baselineMCIDBySeverity(derivedSeverity);
+    const appr = approachMCIDAdjustments(inputs, derivedSeverity, baseProb);
+    const unc = computeUncertaintyLevel(appr);
+    const rb = estimateRiskBenefit(inputs, derivedSeverity);
 
-    setSurgeryLabel(label);
-    setRiskBand(risk);
-    setBenefitBand(benefit);
+    const summary = `Age ${inputs.age}, ${sex}, mJOA ${mNum} (${derivedSeverity}), symptom duration ≈ ${
+      inputs.durationMonths
+    } months, planned levels ${inputs.levels}.`;
+
+    setSurgeryLabel(rg.label);
+    setRiskBand(rg.risk);
+    setBenefitBand(rg.benefit);
     setSurgerySummary(summary);
-    setApproachResult(approachResult);
-    setHasRun(true);
-
-    // Confidence / uncertainty band
-    const probsSorted = Object.values(approachResult).sort((a, b) => b - a);
-    const delta = probsSorted[0] - probsSorted[1];
-    let unc: "low" | "moderate" | "high";
-    if (delta >= 0.15) {
-      unc = "low";
-    } else if (delta >= 0.08) {
-      unc = "moderate";
-    } else {
-      unc = "high";
-    }
+    setApproachResult(appr);
     setUncertaintyLevel(unc);
-
-    // Risk vs benefit dial values
-    const { riskScore, benefitScore } = estimateRiskBenefit(inputs);
-    setRiskScore(riskScore);
-    setBenefitScore(benefitScore);
+    setRiskScore(rb.riskScore);
+    setBenefitScore(rb.benefitScore);
+    setHasRun(true);
   };
 
   const bestApproach =
@@ -350,7 +399,7 @@ export default function Prototype() {
       const inputs: PatientInputs = {
         age: Number(row[ageIdx]) || 65,
         sex: (row[sexIdx] as Sex) || "M",
-        severity: derivedSeverity, // ignore any CSV severity and enforce consistency
+        severity: derivedSeverity,
         mjoa: mNum,
         durationMonths: Number(row[durIdx]) || 0,
         t2Signal: (row[t2Idx] as "none" | "bright" | "multilevel") || "bright",
@@ -372,21 +421,21 @@ export default function Prototype() {
             : "no",
       };
 
-      const { label, approachResult } = computeForPatient(inputs);
+      const rg = classifyRiskGroup(inputs, derivedSeverity);
+      const baseProb = baselineMCIDBySeverity(derivedSeverity);
+      const appr = approachMCIDAdjustments(inputs, derivedSeverity, baseProb);
+
       summary.total += 1;
 
-      if (label.startsWith("Surgery recommended")) {
+      if (rg.label.startsWith("Surgery recommended")) {
         summary.surgeryRecommended += 1;
-      } else if (label.startsWith("Consider surgery")) {
+      } else if (rg.label.startsWith("Consider surgery")) {
         summary.consider += 1;
       } else {
         summary.nonOp += 1;
       }
 
-      const best = Object.entries(approachResult).sort(
-        (a, b) => b[1] - a[1]
-      )[0][0] as ApproachKey;
-
+      const best = Object.entries(appr).sort((a, b) => b[1] - a[1])[0][0] as ApproachKey;
       summary[best] += 1;
     }
 
@@ -440,8 +489,7 @@ export default function Prototype() {
           DCM Surgical Decision-Support
         </h1>
         <p className="mt-1 text-sm text-slate-600">
-          Single-patient and batch views using guideline-informed logic and
-          outcome patterns.
+          Single-patient and batch views using guideline-informed logic and outcome patterns.
         </p>
       </div>
 
@@ -771,10 +819,9 @@ export default function Prototype() {
                 )}
 
                 <p className="text-xs text-slate-500">
-                  Logic approximates AO Spine / WFNS guideline groups and
-                  outcome data for DCM (Fehlings et al., Global Spine J 2017;
-                  Tetreault et al., Global Spine J 2017; Merali et al., PLoS
-                  One 2019).
+                  Logic approximates AO Spine / WFNS guideline groups and outcome
+                  data for DCM and OPLL. Exact probabilities will be calibrated
+                  on prospective Ascension Seton data.
                 </p>
               </div>
             )}
@@ -788,7 +835,9 @@ export default function Prototype() {
               </h2>
               {hasRun && approachResult && uncertaintyLevel && !isNonOp && (
                 <span
-                  className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-semibold ${uncertaintyClass}`}
+                  className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-semibold ${
+                    uncertaintyClass
+                  }`}
                 >
                   {uncertaintyLabel}
                 </span>
@@ -797,12 +846,10 @@ export default function Prototype() {
 
             {!hasRun || !approachResult ? (
               <p className="text-sm text-slate-600">
-                After running the recommendation above, approximate
-                probabilities of achieving mJOA MCID with each approach will
-                appear here.
+                After running the recommendation above, approximate probabilities
+                of achieving mJOA MCID with each approach will appear here.
               </p>
             ) : isNonOp ? (
-              // Hybrid behaviour for non-operative cases
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                 <p className="font-semibold mb-1">
                   Non-operative trial recommended at this time.
@@ -815,7 +862,7 @@ export default function Prototype() {
                 {bestApproach && (
                   <p>
                     If the patient later requires surgery (progression of signs
-                    or symptoms), the current model would favor{" "}
+                    or symptoms), the current engine would favour{" "}
                     <span className="font-semibold">
                       {bestApproach.charAt(0).toUpperCase() +
                         bestApproach.slice(1)}
@@ -825,10 +872,9 @@ export default function Prototype() {
                   </p>
                 )}
                 <p className="mt-2 text-xs text-slate-500">
-                  Approach preferences are based on the same prognostic
-                  features (severity, duration, canal compromise, OPLL, MRI
-                  signal, age, smoking) but are presented here only as a
-                  contingency plan if surgery is pursued in the future.
+                  Approach preferences reflect severity, duration, canal
+                  compromise, OPLL, MRI signal, age and smoking, and will be
+                  refined using your prospective data.
                 </p>
               </div>
             ) : (
@@ -862,8 +908,7 @@ export default function Prototype() {
                           </p>
                         ) : (
                           <p className="text-xs text-slate-600">
-                            Lower modeled probability than the leading
-                            approach.
+                            Lower modeled probability than the leading approach.
                           </p>
                         )}
                       </div>
@@ -910,9 +955,10 @@ export default function Prototype() {
             )}
 
             <p className="mt-2 text-xs text-slate-500">
-              Approach patterns reflect known prognostic factors (severity,
-              duration, age, smoking, canal compromise, OPLL, MRI signal) and
-              will later be replaced by your fully trained model.
+              Approach patterns are derived from DCM and OPLL outcome literature
+              (anterior vs posterior vs circumferential) and will be formally
+              calibrated once real Ascension Texas Spine and Scoliosis data are
+              available.
             </p>
 
             {/* PDF / print summary */}
