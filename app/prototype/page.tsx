@@ -13,7 +13,7 @@ type Tab = "single" | "batch";
 interface PatientInputs {
   age: number;
   sex: Sex;
-  severity: Severity;
+  severity: Severity; // derived from mJOA
   mjoa: number;
   durationMonths: number;
   t2Signal: "none" | "bright" | "multilevel";
@@ -40,6 +40,13 @@ interface BatchSummary {
   anterior: number;
   posterior: number;
   circumferential: number;
+}
+
+// Map mJOA -> AO Spine / WFNS severity band
+function deriveSeverityFromMJOA(mjoa: number): Severity {
+  if (mjoa >= 15) return "mild";
+  if (mjoa >= 12) return "moderate";
+  return "severe";
 }
 
 /**
@@ -185,8 +192,8 @@ export default function Prototype() {
   // Single-patient state
   const [age, setAge] = useState("65");
   const [sex, setSex] = useState<Sex>("M");
-  const [severity, setSeverity] = useState<Severity>("moderate");
   const [mjoa, setMjoa] = useState("13");
+  const [severity, setSeverity] = useState<Severity>("moderate"); // auto-set from mJOA
   const [duration, setDuration] = useState("12");
   const [t2Signal, setT2Signal] = useState<"none" | "bright" | "multilevel">(
     "bright"
@@ -228,11 +235,15 @@ export default function Prototype() {
   ];
 
   const runSingleRecommendation = () => {
+    const mNum = Number(mjoa) || 18;
+    const derivedSeverity = deriveSeverityFromMJOA(mNum);
+    setSeverity(derivedSeverity);
+
     const inputs: PatientInputs = {
       age: Number(age) || 65,
       sex,
-      severity,
-      mjoa: Number(mjoa) || 18,
+      severity: derivedSeverity,
+      mjoa: mNum,
       durationMonths: Number(duration) || 0,
       t2Signal,
       levels: Number(levels) || 1,
@@ -300,7 +311,6 @@ export default function Prototype() {
 
     const ageIdx = idx("age");
     const sexIdx = idx("sex");
-    const sevIdx = idx("severity");
     const mjoaIdx = idx("mjoa");
     const durIdx = idx("duration_months");
     const levelsIdx = idx("levels");
@@ -310,12 +320,12 @@ export default function Prototype() {
     const smokerIdx = idx("smoker");
 
     if (
-      [ageIdx, sexIdx, sevIdx, mjoaIdx, durIdx, levelsIdx, canalIdx, t2Idx].some(
+      [ageIdx, sexIdx, mjoaIdx, durIdx, levelsIdx, canalIdx, t2Idx].some(
         (i) => i === -1
       )
     ) {
       setBatchError(
-        "Required columns: age, sex, severity, mjoa, duration_months, levels, canal_ratio, t2_signal (plus optional: opll, smoker)."
+        "Required columns: age, sex, mjoa, duration_months, levels, canal_ratio, t2_signal (optional: opll, smoker)."
       );
       return;
     }
@@ -334,19 +344,23 @@ export default function Prototype() {
       const row = rows[r];
       if (!row.length || row.every((c) => c === "")) continue;
 
+      const mNum = Number(row[mjoaIdx]) || 18;
+      const derivedSeverity = deriveSeverityFromMJOA(mNum);
+
       const inputs: PatientInputs = {
         age: Number(row[ageIdx]) || 65,
         sex: (row[sexIdx] as Sex) || "M",
-        severity: (row[sevIdx] as Severity) || "moderate",
-        mjoa: Number(row[mjoaIdx]) || 18,
+        severity: derivedSeverity, // ignore any CSV severity and enforce consistency
+        mjoa: mNum,
         durationMonths: Number(row[durIdx]) || 0,
         t2Signal: (row[t2Idx] as "none" | "bright" | "multilevel") || "bright",
         levels: Number(row[levelsIdx]) || 1,
         canalRatio:
           (row[canalIdx] as "<50%" | "50–60%" | ">60%") || "<50%",
         opll:
-          (row[opllIdx] as YesNo) &&
-          (row[opllIdx] as YesNo).toLowerCase() === "yes"
+          opllIdx !== -1 &&
+          row[opllIdx] &&
+          row[opllIdx].toLowerCase() === "yes"
             ? "yes"
             : "no",
         t1Hypo: "no",
@@ -396,6 +410,15 @@ export default function Prototype() {
       : uncertaintyLevel === "moderate"
       ? "bg-amber-50 text-amber-700 border-amber-200"
       : "bg-rose-50 text-rose-700 border-rose-200";
+
+  const isNonOp = surgeryLabel.startsWith("Non-operative trial reasonable");
+
+  const severityDisplay =
+    severity === "mild"
+      ? "Mild (mJOA 15–17)"
+      : severity === "moderate"
+      ? "Moderate (mJOA 12–14)"
+      : "Severe (mJOA ≤11)";
 
   return (
     <main className="px-6 md:px-10 pt-8 md:pt-10 pb-20 max-w-5xl mx-auto space-y-8">
@@ -456,7 +479,7 @@ export default function Prototype() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-              {/* age / sex / mJOA / severity */}
+              {/* age / sex / mJOA / severity (auto) */}
               <div>
                 <label className="block font-semibold mb-1 text-sm">Age</label>
                 <input
@@ -489,17 +512,11 @@ export default function Prototype() {
 
               <div>
                 <label className="block font-semibold mb-1 text-sm">
-                  Severity
+                  Severity (auto from mJOA)
                 </label>
-                <select
-                  value={severity}
-                  onChange={(e) => setSeverity(e.target.value as Severity)}
-                  className="w-full p-2 rounded border border-slate-300 bg-white"
-                >
-                  <option value="mild">Mild (mJOA 15–17)</option>
-                  <option value="moderate">Moderate (mJOA 12–14)</option>
-                  <option value="severe">Severe (mJOA ≤11)</option>
-                </select>
+                <div className="w-full p-2 rounded border border-slate-200 bg-slate-50 text-slate-700 text-xs md:text-sm">
+                  {severityDisplay}
+                </div>
               </div>
 
               {/* symptom duration / T2 / levels / canal ratio */}
@@ -769,7 +786,7 @@ export default function Prototype() {
               <h2 className="text-lg md:text-xl font-semibold">
                 2. If surgery is offered, which approach?
               </h2>
-              {hasRun && approachResult && uncertaintyLevel && (
+              {hasRun && approachResult && uncertaintyLevel && !isNonOp && (
                 <span
                   className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-semibold ${uncertaintyClass}`}
                 >
@@ -784,6 +801,36 @@ export default function Prototype() {
                 probabilities of achieving mJOA MCID with each approach will
                 appear here.
               </p>
+            ) : isNonOp ? (
+              // Hybrid behaviour for non-operative cases
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                <p className="font-semibold mb-1">
+                  Non-operative trial recommended at this time.
+                </p>
+                <p className="mb-1">
+                  Surgery is not being recommended as the primary strategy for
+                  this profile, assuming the patient can be followed closely and
+                  risk factors remain stable.
+                </p>
+                {bestApproach && (
+                  <p>
+                    If the patient later requires surgery (progression of signs
+                    or symptoms), the current model would favor{" "}
+                    <span className="font-semibold">
+                      {bestApproach.charAt(0).toUpperCase() +
+                        bestApproach.slice(1)}
+                    </span>{" "}
+                    over the other options based on estimated probability of
+                    achieving clinically meaningful mJOA improvement.
+                  </p>
+                )}
+                <p className="mt-2 text-xs text-slate-500">
+                  Approach preferences are based on the same prognostic
+                  features (severity, duration, canal compromise, OPLL, MRI
+                  signal, age, smoking) but are presented here only as a
+                  contingency plan if surgery is pursued in the future.
+                </p>
+              </div>
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -900,8 +947,7 @@ export default function Prototype() {
           <p className="text-xs text-slate-600">
             Required columns (header row):{" "}
             <code className="bg-slate-100 px-2 py-1 rounded">
-              age, sex, severity, mjoa, duration_months, levels, canal_ratio,
-              t2_signal
+              age, sex, mjoa, duration_months, levels, canal_ratio, t2_signal
             </code>{" "}
             Optional:{" "}
             <code className="bg-slate-100 px-2 py-1 rounded">opll, smoker</code>
@@ -912,9 +958,9 @@ export default function Prototype() {
             value={batchCsv}
             onChange={(e) => setBatchCsv(e.target.value)}
             className="w-full p-3 rounded-xl border border-slate-300 bg-white text-xs font-mono"
-            placeholder={`age,sex,severity,mjoa,duration_months,levels,canal_ratio,t2_signal,opll,smoker
-65,M,moderate,13,12,3,<50%,bright,no,no
-78,M,severe,8,24,4,>60%,multilevel,yes,yes`}
+            placeholder={`age,sex,mjoa,duration_months,levels,canal_ratio,t2_signal,opll,smoker
+65,M,13,12,3,<50%,bright,no,no
+78,M,8,24,4,>60%,multilevel,yes,yes`}
           />
 
           {batchError && (
