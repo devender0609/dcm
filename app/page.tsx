@@ -5,26 +5,22 @@ export default function Home() {
   return (
     <main className="px-6 md:px-10 pt-8 md:pt-10 pb-20 max-w-6xl mx-auto space-y-10">
       {/* HEADER */}
-      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="logo-wrap">
-            <Image
-              src="/clinic-logo.png"
-              width={190}
-              height={70}
-              alt="Ascension Seton logo"
-              className="logo-merged"
-              priority
-            />
-          </div>
-          <div className="flex flex-col">
-            <h1 className="text-2xl md:text-3xl font-bold leading-snug">
-              Ascension Seton Spine Clinic
-            </h1>
-            <p className="text-sm md:text-base text-slate-600 mt-1">
-              Degenerative Cervical Myelopathy Decision-Support Tool
-            </p>
-          </div>
+      <header className="flex flex-col items-start gap-4">
+        <div className="logo-wrap flex flex-col items-start">
+          <Image
+            src="/clinic-logo.png"
+            width={190}
+            height={70}
+            alt="Ascension Seton logo"
+            className="logo-merged mb-2"
+            priority
+          />
+          <h1 className="text-2xl md:text-3xl font-bold leading-snug">
+            Ascension Texas Spine and Scoliosis
+          </h1>
+          <p className="text-sm md:text-base text-slate-600 mt-1">
+            Degenerative Cervical Myelopathy Decision-Support Tool
+          </p>
         </div>
       </header>
 
@@ -35,14 +31,14 @@ export default function Home() {
             DCM Surgical Decision Support
           </h2>
           <p className="text-sm md:text-base text-slate-700 max-w-3xl">
-            This tool is being developed to support discussions about{" "}
+            This tool supports discussions about{" "}
             <span className="font-semibold">
               when to offer surgery and which approach may provide the highest
               chance of meaningful improvement
             </span>{" "}
             in degenerative cervical myelopathy (DCM). It is grounded in AO
-            Spine / WFNS guideline concepts and major surgical outcome cohorts,
-            and will be calibrated on prospectively collected Ascension Seton
+            Spine / WFNS guideline concepts and major surgical outcome cohorts
+            and will be calibrated on prospectively collected Ascension Texas
             data.
           </p>
         </div>
@@ -114,7 +110,7 @@ export default function Home() {
             href="/prototype"
             className="inline-flex items-center justify-center bg-teal-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-teal-700 transition text-sm md:text-base"
           >
-            Launch single-patient view →
+            Launch decision-support view →
           </Link>
         </div>
       </section>
