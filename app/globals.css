@@ -3,43 +3,46 @@
 @tailwind utilities;
 
 :root {
-  --bg-gradient: radial-gradient(circle at top left, #22B8B0 0, transparent 50%),
-                 radial-gradient(circle at top right, #6C3FA4 0, transparent 55%),
-                 radial-gradient(circle at bottom, #0060A8 0, transparent 60%);
+  --bg-gradient: radial-gradient(circle at top left, #e0f7fa 0, transparent 55%),
+                 radial-gradient(circle at top right, #ede7f6 0, transparent 55%),
+                 radial-gradient(circle at bottom, #fff3e0 0, transparent 60%);
 }
 
+/* Light overall background so the logo's white edges disappear */
 body {
-  @apply bg-slate-950 text-slate-100;
+  @apply text-slate-900;
+  background-color: #f5f7fb;
   background-image: var(--bg-gradient);
   background-attachment: fixed;
   background-size: cover;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+/* Main card style */
 .glass {
-  @apply bg-slate-900/75 border border-slate-700/60 backdrop-blur-xl rounded-3xl p-10 shadow-lg;
+  @apply bg-white/95 border border-slate-200 rounded-3xl p-8 md:p-10 shadow-lg;
 }
 
+/* Gradient headline text */
 .gradient-text {
-  background: linear-gradient(120deg, #22B8B0, #6C3FA4, #F4B000);
+  background: linear-gradient(120deg, #0f766e, #6366f1, #eab308);
   -webkit-background-clip: text;
   color: transparent;
 }
 
-/* Logo wrapper that blends the white background */
+/* Logo wrapper – white on white so no visible border */
 .logo-wrap {
-  @apply inline-flex items-center justify-center rounded-2xl px-3 py-2;
-  background: radial-gradient(circle at top left, #ffffff40 0, transparent 55%);
+  @apply inline-flex items-center justify-center rounded-2xl px-2 py-1 bg-white shadow-md;
 }
 
-/* Make white in the logo blend into the page */
+/* Let logo ink blend a bit into background */
 .logo-merged {
-  mix-blend-mode: screen;
-  filter: drop-shadow(0 0 10px rgba(15,23,42,0.8));
+  mix-blend-mode: multiply;
+  image-rendering: auto;
 }
 
-/* Small utility for subtle labels */
+/* Small pill */
 .badge {
   @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold 
-         bg-slate-800/80 border border-slate-700/80 uppercase tracking-wide;
+         bg-slate-100 border border-slate-200 uppercase tracking-wide;
 }

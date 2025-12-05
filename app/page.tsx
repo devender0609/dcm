@@ -3,136 +3,174 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="px-6 md:px-10 pt-10 md:pt-14 pb-24 max-w-6xl mx-auto">
+    <main className="px-6 md:px-10 pt-8 md:pt-10 pb-20 max-w-6xl mx-auto space-y-10">
       {/* HEADER */}
-      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
+      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div className="flex items-center gap-4">
           <div className="logo-wrap">
             <Image
               src="/clinic-logo.png"
               width={190}
               height={70}
-              alt="Ascension Seton"
+              alt="Ascension Seton logo"
               className="logo-merged"
               priority
             />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-2xl md:text-4xl font-bold text-slate-50 leading-snug">
+            <h1 className="text-2xl md:text-3xl font-bold leading-snug">
               Ascension Seton Spine Clinic
             </h1>
-            <p className="text-sm md:text-base text-slate-300/80 mt-1">
-              Degenerative Cervical Myelopathy Decision-Support Prototype
+            <p className="text-sm md:text-base text-slate-600 mt-1">
+              Degenerative Cervical Myelopathy Decision-Support Tool
             </p>
           </div>
-        </div>
-
-        <div className="flex flex-col items-start md:items-end gap-2">
-          <span className="badge">Research Preview Only</span>
-          <p className="text-xs text-slate-300/70 max-w-xs md:text-right">
-            Not for direct clinical use. Designed to be reviewed with surgeons
-            and refined using real-world prospective data.
-          </p>
         </div>
       </header>
 
-      {/* HERO / MAIN CARD */}
-      <section className="glass mb-10">
-        <h2 className="text-3xl md:text-4xl font-bold mb-4 gradient-text">
-          DCM Surgical Decision Support
-        </h2>
-        <p className="text-base md:text-lg opacity-90 leading-relaxed">
-          This tool is being developed to help surgeons reason through two
-          critical questions in degenerative cervical myelopathy:
-        </p>
+      {/* MAIN EXPLANATION */}
+      <section className="glass space-y-6">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold mb-2 gradient-text">
+            DCM Surgical Decision Support
+          </h2>
+          <p className="text-sm md:text-base text-slate-700 max-w-3xl">
+            This prototype is being developed to support discussions about{" "}
+            <span className="font-semibold">
+              when to offer surgery and which approach may provide the highest
+              chance of meaningful improvement
+            </span>{" "}
+            in patients with degenerative cervical myelopathy (DCM). It is
+            grounded in AO Spine / WFNS guideline concepts and major outcome
+            cohorts and will later be calibrated on prospective Ascension Seton
+            data.
+          </p>
+        </div>
 
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="rounded-2xl bg-slate-900/60 border border-slate-700/70 p-6">
-            <p className="text-sm font-semibold text-clinicTeal mb-1">
-              Question 1
-            </p>
-            <h3 className="text-xl font-semibold mb-2">
-              Should this patient undergo surgery?
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-sm md:text-base">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-5">
+            <h3 className="font-semibold mb-2">
+              1. Should this patient undergo surgery?
             </h3>
-            <p className="text-sm text-slate-200/80">
-              A guideline-based logic layer (AO Spine / WFNS concepts) estimates
-              whether surgery is recommended, surgery should be considered, or a
-              non-operative trial with close follow-up is reasonable. It also
-              provides approximate natural-history vs surgical benefit bands.
-            </p>
+            <ul className="list-disc list-inside space-y-1 text-slate-700">
+              <li>
+                Uses baseline{" "}
+                <span className="font-semibold">
+                  mJOA, symptom duration, and MRI cord signal
+                </span>{" "}
+                to classify patients as:
+              </li>
+              <li className="ml-4">
+                <span className="font-semibold">“Surgery recommended”</span>{" "}
+                (typically moderate–severe or progressive DCM).{" "}
+                <span className="text-xs">
+                  (Fehlings et al., Global Spine J 2017; Gulati et al.,
+                  Neurosurgery 2021)
+                </span>
+              </li>
+              <li className="ml-4">
+                <span className="font-semibold">“Consider surgery”</span> (mild
+                DCM with risk markers or patient-prioritized goals).
+              </li>
+              <li className="ml-4">
+                <span className="font-semibold">
+                  “Non-operative trial reasonable”
+                </span>{" "}
+                for carefully selected mild cases, with close follow-up.
+              </li>
+            </ul>
           </div>
 
-          <div className="rounded-2xl bg-slate-900/60 border border-slate-700/70 p-6">
-            <p className="text-sm font-semibold text-clinicTeal mb-1">
-              Question 2
-            </p>
-            <h3 className="text-xl font-semibold mb-2">
-              If surgery is offered, which approach?
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-5">
+            <h3 className="font-semibold mb-2">
+              2. If surgery is offered, which approach?
             </h3>
-            <p className="text-sm text-slate-200/80">
-              A synthetic-data–trained model compares the probability of
-              achieving clinically meaningful mJOA improvement with anterior,
-              posterior, and circumferential approaches, with literature-based
-              tie-break rules for complex cases.
-            </p>
+            <ul className="list-disc list-inside space-y-1 text-slate-700">
+              <li>
+                Compares estimated probability of achieving{" "}
+                <span className="font-semibold">
+                  clinically meaningful mJOA improvement (MCID)
+                </span>{" "}
+                after anterior, posterior, and circumferential procedures.
+              </li>
+              <li>
+                Patterns are based on published prognostic factors: worse
+                baseline severity, longer duration, older age, smoking, and high
+                canal compromise predict lower odds of good outcome.{" "}
+                <span className="text-xs">
+                  (Tetreault et al., Global Spine J 2017; Merali et al., PLoS
+                  One 2019)
+                </span>
+              </li>
+              <li>
+                Literature-based rules (e.g. kyphosis, long multilevel disease,
+                OPLL) can override small model differences when appropriate.
+              </li>
+            </ul>
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col md:flex-row gap-4 md:items-center">
+        <div className="flex flex-col md:flex-row gap-4 md:items-center">
           <Link
             href="/prototype"
-            className="inline-flex items-center justify-center bg-clinicTeal text-slate-900 px-6 py-3 rounded-xl font-semibold hover:bg-clinicGold transition text-sm md:text-base"
+            className="inline-flex items-center justify-center bg-teal-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-teal-700 transition text-sm md:text-base"
           >
-            Launch Prototype →
+            Launch single-patient prototype →
           </Link>
-          <p className="text-xs md:text-sm text-slate-300/80 max-w-lg">
-            The current web interface is a visual and workflow prototype. The
-            underlying engine is being developed and calibrated against published
-            literature and synthetic datasets and will later be validated on
-            prospectively collected Ascension Seton cases.
+          <p className="text-xs md:text-sm text-slate-600 max-w-xl">
+            For demonstration only. Outputs are intended to support structured
+            clinical reasoning and discussion, not to replace clinical judgment
+            or guideline-based decision-making.
           </p>
         </div>
       </section>
 
-      {/* INFO SECTION */}
-      <section className="glass">
-        <h3 className="text-xl md:text-2xl font-semibold mb-4">
-          What clinicians will see in future versions
+      {/* KEY REFS – concise, inline on page */}
+      <section className="glass space-y-3 text-xs md:text-sm text-slate-700">
+        <h3 className="text-sm md:text-base font-semibold">
+          Key references informing the current logic
         </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-slate-200/80">
-          <div className="bg-slate-900/60 border border-slate-800/70 rounded-2xl p-5">
-            <h4 className="font-semibold mb-2">Surgery Recommendation</h4>
-            <p>
-              A three-level classification:
-              <br />
-              <span className="italic">
-                “Surgery recommended”, “Consider surgery”, or “Non-operative
-                trial reasonable”
-              </span>
-              , with a short explanation referencing mJOA, MRI signal change,
-              symptom duration, and structural risk.
-            </p>
-          </div>
-
-          <div className="bg-slate-900/60 border border-slate-800/70 rounded-2xl p-5">
-            <h4 className="font-semibold mb-2">Risk vs Benefit Bands</h4>
-            <p>
-              Approximate risk of neurological progression without surgery and
-              estimated likelihood of clinically meaningful improvement with
-              surgery, based on published natural history and outcome cohorts.
-            </p>
-          </div>
-
-          <div className="bg-slate-900/60 border border-slate-800/70 rounded-2xl p-5">
-            <h4 className="font-semibold mb-2">Approach-Level Outcomes</h4>
-            <p>
-              Probabilities of mJOA MCID for anterior, posterior, and
-              circumferential approaches, with flags when guideline-based rules
-              override a small modeled difference between options.
-            </p>
-          </div>
-        </div>
+        <ul className="list-disc list-inside space-y-1">
+          <li>
+            Fehlings MG, et al.{" "}
+            <span className="italic">
+              A Clinical Practice Guideline for the Management of Patients With
+              Degenerative Cervical Myelopathy.
+            </span>{" "}
+            Global Spine J. 2017.
+          </li>
+          <li>
+            Tetreault L, et al.{" "}
+            <span className="italic">
+              Change in Function, Pain, and Quality of Life Following Operative
+              Treatment for DCM.
+            </span>{" "}
+            Global Spine J. 2017 (systematic review / meta-analysis).
+          </li>
+          <li>
+            Merali Z, et al.{" "}
+            <span className="italic">
+              Using a Machine Learning Approach to Predict Outcome After Surgery
+              for DCM.
+            </span>{" "}
+            PLoS One. 2019.
+          </li>
+          <li>
+            Matz PG, Fehlings MG, et al.{" "}
+            <span className="italic">
+              The Natural History of Cervical Spondylotic Myelopathy.
+            </span>{" "}
+            J Neurosurg Spine. 2009.
+          </li>
+          <li>
+            Gulati S, et al.{" "}
+            <span className="italic">
+              Surgery for Degenerative Cervical Myelopathy: A Practical
+              Overview.
+            </span>{" "}
+            Neurosurgery. 2021.
+          </li>
+        </ul>
       </section>
     </main>
   );
