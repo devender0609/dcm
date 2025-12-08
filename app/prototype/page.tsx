@@ -3,7 +3,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, Download } from "lucide-react";
 
 type Sex = "M" | "F";
 type Severity = "mild" | "moderate" | "severe";
@@ -45,11 +44,7 @@ interface RecommendationResult {
   uncertainty: "low" | "moderate" | "high";
 }
 
-const APPROACH_KEYS: Approach[] = [
-  "anterior",
-  "posterior",
-  "circumferential",
-];
+const APPROACH_KEYS: Approach[] = ["anterior", "posterior", "circumferential"];
 
 function deriveSeverity(mJOA: number): Severity {
   if (mJOA >= 15) return "mild";
@@ -58,11 +53,12 @@ function deriveSeverity(mJOA: number): Severity {
 }
 
 function mockRecommend(form: FormState): RecommendationResult {
-  // Very simple mock logic mimicking the hybrid engine behaviour
   const severity = deriveSeverity(form.mJOA);
   const longDuration = form.symptomDuration >= 12;
   const highRiskMRI =
-    form.t2Signal !== "none" || form.canalRatio !== "<50%" || form.t1Hypo === "Yes";
+    form.t2Signal !== "none" ||
+    form.canalRatio !== "<50%" ||
+    form.t1Hypo === "Yes";
 
   let surgeryScore = 0;
   if (severity === "severe") surgeryScore += 50;
@@ -79,8 +75,8 @@ function mockRecommend(form: FormState): RecommendationResult {
       80 -
         (severity === "mild" ? 10 : 0) -
         (longDuration ? 15 : 0) -
-        (form.t2Signal === "multilevel" ? 15 : 0),
-    ),
+        (form.t2Signal === "multilevel" ? 15 : 0)
+    )
   );
 
   let recommendationLabel: string;
@@ -98,7 +94,7 @@ function mockRecommend(form: FormState): RecommendationResult {
     surgeryRecommended = true;
   }
 
-  // Approach probabilities: simple rule-based mock
+  // Rule-based mock approach probabilities
   let anterior = 0.3;
   let posterior = 0.6;
   let circumferential = 0.1;
@@ -128,7 +124,7 @@ function mockRecommend(form: FormState): RecommendationResult {
   };
 
   const sorted = APPROACH_KEYS.slice().sort(
-    (a, b) => approachProbs[b] - approachProbs[a],
+    (a, b) => approachProbs[b] - approachProbs[a]
   );
   const bestKey = sorted[0];
   const secondKey = sorted[1];
@@ -206,12 +202,9 @@ export default function PrototypePage() {
     setForm(updated);
   };
 
-  const handleChangeSelect = <
-    K extends keyof FormState,
-    V extends FormState[K],
-  >(
+  const handleChangeSelect = <K extends keyof FormState, V extends FormState[K]>(
     key: K,
-    value: V,
+    value: V
   ) => {
     const updated: FormState = { ...form, [key]: value } as FormState;
     if (key === "mJOA") {
@@ -244,8 +237,8 @@ export default function PrototypePage() {
             href="/"
             className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to overview
+            <span className="text-base">←</span>
+            <span>Back to overview</span>
           </Link>
           <div className="hidden md:block text-xs text-slate-500">
             Ascension Texas Spine and Scoliosis
@@ -259,9 +252,10 @@ export default function PrototypePage() {
               <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">
                 DCM Surgical Decision-Support
               </h1>
-              <p className="text-sm md:text-sm text-slate-600 mt-1 max-w-2xl">
-                Single-patient and batch views using guideline-informed logic blended with
-                machine-learning models trained on synthetic DCM outcome patterns.
+              <p className="text-sm text-slate-600 mt-1 max-w-2xl">
+                Single-patient and batch views using guideline-informed logic
+                blended with machine-learning models trained on synthetic DCM
+                outcome patterns.
               </p>
             </div>
           </div>
@@ -313,7 +307,9 @@ export default function PrototypePage() {
                       min={18}
                       max={95}
                       value={form.age}
-                      onChange={(e) => handleChangeNumber("age", e.target.value)}
+                      onChange={(e) =>
+                        handleChangeNumber("age", e.target.value)
+                      }
                       className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                     />
                   </div>
@@ -344,7 +340,9 @@ export default function PrototypePage() {
                       max={18}
                       step={0.5}
                       value={form.mJOA}
-                      onChange={(e) => handleChangeNumber("mJOA", e.target.value)}
+                      onChange={(e) =>
+                        handleChangeNumber("mJOA", e.target.value)
+                      }
                       className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                     />
                   </div>
@@ -356,7 +354,7 @@ export default function PrototypePage() {
                     <div className="w-full rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-700 flex items-center">
                       {form.severity === "mild" && "Mild (mJOA ≥ 15)"}
                       {form.severity === "moderate" && "Moderate (mJOA 12–14)"}
-                      {form.severity === "severe" && "Severe (mJOA &lt; 12)"}
+                      {form.severity === "severe" && "Severe (mJOA < 12)"}
                     </div>
                   </div>
                 </div>
@@ -389,7 +387,7 @@ export default function PrototypePage() {
                       onChange={(e) =>
                         handleChangeSelect(
                           "t2Signal",
-                          e.target.value as T2Signal,
+                          e.target.value as T2Signal
                         )
                       }
                       className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
@@ -425,7 +423,7 @@ export default function PrototypePage() {
                       onChange={(e) =>
                         handleChangeSelect(
                           "canalRatio",
-                          e.target.value as CanalCat,
+                          e.target.value as CanalCat
                         )
                       }
                       className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
@@ -531,7 +529,9 @@ export default function PrototypePage() {
                       min={0}
                       max={100}
                       value={form.ndi}
-                      onChange={(e) => handleChangeNumber("ndi", e.target.value)}
+                      onChange={(e) =>
+                        handleChangeNumber("ndi", e.target.value)
+                      }
                       className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                     />
                   </div>
@@ -583,7 +583,7 @@ export default function PrototypePage() {
             {/* Results */}
             {result && (
               <>
-                {/* Q1: surgery? */}
+                {/* Q1 – surgery? */}
                 <section className="bg-white border border-slate-200 rounded-3xl px-6 md:px-8 py-7 shadow-sm space-y-5">
                   <h2 className="text-lg md:text-xl font-semibold">
                     1. Should this patient undergo surgery?
@@ -604,32 +604,33 @@ export default function PrototypePage() {
                         </span>
                       </p>
                       <p className="text-slate-700 text-xs md:text-sm leading-relaxed">
-                        Age {form.age}, {form.sex}, mJOA {form.mJOA.toFixed(1)} (
-                        {form.severity}), symptom duration ≈{" "}
-                        {form.symptomDuration.toFixed(1)} months, planned levels{" "}
-                        {form.plannedLevels}. Gait impairment: {form.gait}. OPLL:{" "}
-                        {form.opll}. Canal compromise: {form.canalRatio}. T2 cord
-                        signal: {form.t2Signal}.
+                        Age {form.age}, {form.sex}, mJOA{" "}
+                        {form.mJOA.toFixed(1)} ({form.severity}), symptom
+                        duration ≈ {form.symptomDuration.toFixed(1)} months,
+                        planned levels {form.plannedLevels}. Gait impairment:{" "}
+                        {form.gait}. OPLL: {form.opll}. Canal compromise:{" "}
+                        {form.canalRatio}. T2 cord signal: {form.t2Signal}.
                       </p>
                     </div>
 
                     <div className="text-xs md:text-sm text-slate-700">
-                      <p className="font-semibold mb-1">Risk vs benefit snapshot</p>
+                      <p className="font-semibold mb-1">
+                        Risk vs benefit snapshot
+                      </p>
                       <p className="mb-1">
                         <strong>Risk without surgery:</strong>{" "}
-                        {result.riskWithoutSurgery.toFixed(0)}% estimated chance
-                        of neurological worsening or failure to improve.
+                        {result.riskWithoutSurgery.toFixed(0)}% estimated
+                        chance of neurological worsening or failure to improve.
                       </p>
                       <p className="mb-1">
                         <strong>Expected benefit with surgery:</strong>{" "}
-                        {result.benefitWithSurgery.toFixed(0)}% estimated chance
-                        of clinically meaningful mJOA improvement.
+                        {result.benefitWithSurgery.toFixed(0)}% estimated
+                        chance of clinically meaningful mJOA improvement.
                       </p>
                       <p className="mt-1 text-slate-600">{result.riskText}</p>
                     </div>
                   </div>
 
-                  {/* Risk vs benefit dial (simple bars) */}
                   <div className="grid md:grid-cols-2 gap-4 text-xs md:text-sm">
                     <div className="bg-rose-50 border border-rose-100 rounded-2xl px-4 py-3">
                       <div className="flex items-center justify-between mb-1">
@@ -643,7 +644,9 @@ export default function PrototypePage() {
                       <div className="w-full h-2 rounded-full bg-rose-100 overflow-hidden">
                         <div
                           className="h-full rounded-full bg-rose-500"
-                          style={{ width: `${result.riskWithoutSurgery}%` }}
+                          style={{
+                            width: `${result.riskWithoutSurgery}%`,
+                          }}
                         />
                       </div>
                     </div>
@@ -660,14 +663,16 @@ export default function PrototypePage() {
                       <div className="w-full h-2 rounded-full bg-emerald-100 overflow-hidden">
                         <div
                           className="h-full rounded-full bg-emerald-500"
-                          style={{ width: `${result.benefitWithSurgery}%` }}
+                          style={{
+                            width: `${result.benefitWithSurgery}%`,
+                          }}
                         />
                       </div>
                     </div>
                   </div>
                 </section>
 
-                {/* Q2: approach */}
+                {/* Q2 – approach */}
                 <section className="bg-white border border-slate-200 rounded-3xl px-6 md:px-8 py-7 shadow-sm space-y-6">
                   <div className="flex items-start justify-between gap-3">
                     <h2 className="text-lg md:text-xl font-semibold">
@@ -715,7 +720,7 @@ export default function PrototypePage() {
                     })}
                   </div>
 
-                  {/* Confidence bands: bar chart style */}
+                  {/* Confidence bands */}
                   <div className="space-y-3">
                     <p className="text-xs md:text-sm font-medium text-slate-700">
                       P(MCID) by approach (approximate confidence bands)
@@ -745,26 +750,27 @@ export default function PrototypePage() {
                       })}
                     </div>
                     <p className="text-[11px] text-slate-500">
-                      Patterns combine literature-based preferences (e.g. multilevel disease,
-                      kyphosis, OPLL) with machine-learning estimates derived from synthetic DCM
-                      outcome data. Exact probabilities will be recalibrated once real Ascension
-                      Texas outcomes are available.
+                      Patterns combine literature-based preferences (e.g.
+                      multilevel disease, kyphosis, OPLL) with
+                      machine-learning estimates derived from synthetic DCM
+                      outcome data. Exact probabilities will be recalibrated
+                      once real Ascension Texas outcomes are available.
                     </p>
                   </div>
 
-                  {/* PDF / print summary */}
+                  {/* PDF / print */}
                   <div className="pt-2 flex flex-wrap items-center gap-3">
                     <button
                       type="button"
                       onClick={handlePrint}
                       className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-xs md:text-sm font-medium text-slate-800 hover:bg-slate-100"
                     >
-                      <Download className="h-4 w-4" />
-                      Download / print summary (PDF)
+                      <span className="text-base">↓</span>
+                      <span>Download / print summary (PDF)</span>
                     </button>
                     <p className="text-[11px] text-slate-500">
-                      Uses the browser’s print-to-PDF function to create a one-page summary of
-                      current inputs and recommendations.
+                      Uses the browser&apos;s print-to-PDF function to create a
+                      one-page summary of current inputs and recommendations.
                     </p>
                   </div>
                 </section>
@@ -778,23 +784,26 @@ export default function PrototypePage() {
               Batch (CSV) – coming online with real-world validation
             </h2>
             <p className="text-sm text-slate-700 max-w-3xl">
-              The batch view will allow clinicians to upload a CSV file of multiple DCM patients
-              (with the same fields as the single-patient view) and receive aggregated summaries of
-              surgery recommendations, approach distributions, and expected MCID rates. This will be
-              activated once the model has been calibrated and validated on prospectively collected
-              Ascension Texas data.
+              The batch view will allow clinicians to upload a CSV file of
+              multiple DCM patients (with the same fields as the single-patient
+              view) and receive aggregated summaries of surgery recommendations,
+              approach distributions, and expected MCID rates. This will be
+              activated once the model has been calibrated and validated on
+              prospectively collected Ascension Texas data.
             </p>
             <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-5 text-sm text-slate-600">
               <p className="font-medium mb-2">Planned features:</p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>CSV upload with automatic validation of required fields.</li>
                 <li>
-                  Cohort-level dashboard: proportion “surgery recommended”, approach mix, and
-                  predicted MCID rates.
+                  CSV upload with automatic validation of required fields.
                 </li>
                 <li>
-                  Exportable summaries for morbidity and mortality conference, multidisciplinary
-                  DCM rounds, or research audits.
+                  Cohort-level dashboard: proportion “surgery recommended”,
+                  approach mix, and predicted MCID rates.
+                </li>
+                <li>
+                  Exportable summaries for morbidity and mortality conference,
+                  multidisciplinary DCM rounds, or research audits.
                 </li>
               </ul>
             </div>
