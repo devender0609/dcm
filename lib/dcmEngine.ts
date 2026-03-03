@@ -32,8 +32,8 @@ export function calculateOutputs(input: Inputs) {
 
   return {
     severity,
-    riskWithoutSurgery: toPct(base.risk, 1),      // 35.6 etc
-    probabilityMCID: toPct(base.mcid, 1),         // 89.0 etc
-    probabilityState: toPct(base.state, 1),       // 97.7 / 36.3 / 0.1
+    riskWithoutSurgery: toPct(base.risk, 1),      // 35.6 / 60.6 / 80.6
+    probabilityMCID: toPct(base.mcid, 1),         // 89.0 / 62.5 / 47.0
+    probabilityState: toPct(base.state, 1),       // 97.7 / 36.3 / 0.1  <-- UPDATED
   }
 }
