@@ -70,12 +70,12 @@ function mockRecommend(form: FormState): RecommendationResult {
 
   // Recommendation label: guideline-aligned defaults (moderate/severe generally recommended).
   // Mild depends on risk + high-risk features.
-  const highRiskImaging =
-    form.t2Signal === "multilevel" ||
-    form.t1Hypointensity === "Yes" ||
-    form.canalRatio === ">60%" ||
-    form.opll === "Yes" ||
-    form.gaitImpairment === "Yes"
+const highRiskImaging =
+  form.t2Signal === "multilevel" ||
+  form.t1Hypo === "Yes" ||
+  form.canalRatio === ">60%" ||
+  form.opll === "Yes" ||
+  form.gait === "Yes"
 
   let surgeryRecommended = false
   let recommendationLabel = "Non-operative surveillance"
