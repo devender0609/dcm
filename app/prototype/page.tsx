@@ -320,8 +320,12 @@ function SeverityBenchmarkChart({ currentSeverity }: { currentSeverity: Outputs[
         <h3 className="mt-1 text-lg font-bold text-slate-950">Synthetic cohort outcomes by baseline DCM severity</h3>
       </div>
       <div className="mt-5 flex flex-wrap gap-4 text-xs text-slate-600">
-        <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-teal-700" />Severity-specific MCID achieved</span>
-        <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-slate-400" />Postoperative mJOA ≥16</span>
+        <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-teal-700" />Meaningful improvement achieved (severity-specific MCID)</span>
+        <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-indigo-500" />Favorable postoperative neurologic state (mJOA ≥16)</span>
+      </div>
+      <div className="mt-5 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-xs leading-5 text-sky-950">
+        <p className="font-semibold">How to interpret these two percentages</p>
+        <p className="mt-1.5">Meaningful improvement achieved is a <strong>change-based</strong> outcome and reflects reaching the severity-specific mJOA MCID threshold from baseline. Favorable postoperative neurologic state is a <strong>state-based</strong> outcome and reflects reaching a postoperative mJOA of at least 16. A patient can improve meaningfully without reaching mJOA ≥16, especially when baseline DCM is severe.</p>
       </div>
       <div className="mt-6 grid gap-5 sm:grid-cols-3">
         {severityBenchmarks.map((row) => {
@@ -333,23 +337,29 @@ function SeverityBenchmarkChart({ currentSeverity }: { currentSeverity: Outputs[
                 {active && <span className="rounded-full bg-teal-700 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Current severity</span>}
               </div>
               <div className="mt-4 space-y-4">
-                <BenchmarkBar label="MCID" value={row.mcid} tone="teal" />
-                <BenchmarkBar label="mJOA ≥16" value={row.state} tone="slate" />
+                <BenchmarkBar label="Meaningful improvement" sublabel="Severity-specific mJOA MCID reached" value={row.mcid} tone="teal" />
+                <BenchmarkBar label="Favorable neurologic state" sublabel="Postoperative mJOA ≥16" value={row.state} tone="indigo" />
               </div>
             </div>
           )
         })}
       </div>
-      <p className="mt-5 border-t border-slate-100 pt-4 text-xs leading-5 text-slate-500">Descriptive 12-month results from the literature-informed synthetic cohort. These values are not individualized estimates.</p>
+      <p className="mt-5 border-t border-slate-100 pt-4 text-xs leading-5 text-slate-500">Descriptive 12-month results from the literature-informed synthetic cohort. The two bars represent different outcomes: one reflects meaningful improvement from baseline, whereas the other reflects reaching a relatively preserved postoperative neurologic state. These values are not individualized estimates.</p>
     </div>
   )
 }
 
-function BenchmarkBar({ label, value, tone }: { label: string; value: number; tone: "teal" | "slate" }) {
+function BenchmarkBar({ label, sublabel, value, tone }: { label: string; sublabel: string; value: number; tone: "teal" | "indigo" }) {
   return (
     <div>
-      <div className="mb-1.5 flex items-center justify-between text-xs"><span className="text-slate-600">{label}</span><span className="font-bold text-slate-900">{value.toFixed(1)}%</span></div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-white ring-1 ring-slate-200"><div className={`h-full rounded-full ${tone === "teal" ? "bg-teal-700" : "bg-slate-400"}`} style={{ width: `${value}%` }} /></div>
+      <div className="mb-1 flex items-start justify-between gap-3 text-xs">
+        <div>
+          <div className="font-medium text-slate-700">{label}</div>
+          <div className="text-[11px] text-slate-500">{sublabel}</div>
+        </div>
+        <span className="font-bold text-slate-900">{value.toFixed(1)}%</span>
+      </div>
+      <div className="h-2.5 overflow-hidden rounded-full bg-white ring-1 ring-slate-200"><div className={`h-full rounded-full ${tone === "teal" ? "bg-teal-700" : "bg-indigo-500"}`} style={{ width: `${value}%` }} /></div>
     </div>
   )
 }
