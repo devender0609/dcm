@@ -18,3 +18,12 @@ Updated to align the public prototype with the submitted manuscript and tables.
 ## Deliberate conservative behavior
 
 The manuscript describes graded mild-DCM treatment logic but does not publish the complete patient-level thresholds. The deployment therefore defaults mild DCM to the guideline-consistent shared-decision/structured-rehabilitation category rather than inventing unpublished thresholds. Moderate and severe DCM remain surgery-recommended anchors.
+
+## Clinical interface polish update (2026-07-30)
+- Renamed outputs to clearly distinguish framework categories and synthetic-cohort benchmarks from individualized predictions.
+- Changed neurologic-risk presentation to “relative neurologic-concern index” and removed probability-like visual language.
+- Added prominent research-output warning immediately above results.
+- Clarified framework inputs versus recorded-only fields with badges and a legend.
+- Renamed the action to “Apply research framework.”
+- Reorganized results into a clinically familiar hierarchy with improved visual contrast, spacing, and print behavior.
+- Clarified when surgical-corridor classification is considered and retained uncertainty language.

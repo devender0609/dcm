@@ -46,3 +46,11 @@ body {
   @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold 
          bg-slate-100 border border-slate-200 uppercase tracking-wide;
 }
+
+@media print {
+  @page { margin: 0.55in; }
+  body { background: #fff !important; }
+  main { background: #fff !important; }
+  .xl\:sticky { position: static !important; }
+  button, select, input { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
