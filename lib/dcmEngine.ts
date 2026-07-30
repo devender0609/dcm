@@ -23,9 +23,15 @@ export interface Inputs {
   plannedLevels: number
 }
 
+export interface RiskComponent {
+  label: string
+  value: number
+}
+
 export interface Outputs {
   severity: Severity
   neurologicRiskScore: number
+  riskComponents: RiskComponent[]
   treatmentCategory: TreatmentCategory
   probabilityMCID: number
   probabilityState: number
@@ -48,24 +54,24 @@ const TABLE3 = {
   Severe: { mcid: 48.8, state: 2.2, postopMjoa: 11.8 },
 } as const
 
+
+/** Supplementary Table S4 contributions, exposed for transparent display. */
+export function getNeurologicRiskComponents(input: Inputs): RiskComponent[] {
+  const severity = classifySeverity(input.mjoa)
+  return [
+    { label: `Baseline severity (${severity})`, value: severity === "Mild" ? 20 : severity === "Moderate" ? 45 : 65 },
+    { label: "Symptom duration", value: input.symptomDuration <= 6 ? -5 : input.symptomDuration >= 24 ? 10 : 0 },
+    { label: "T2 signal pattern", value: input.t2Signal === "focal" ? 5 : input.t2Signal === "multilevel" ? 10 : 0 },
+    { label: "Canal-occupying ratio", value: input.canalRatio === "50-60%" ? 2 : input.canalRatio === ">60%" ? 5 : 0 },
+    { label: "OPLL", value: input.opll ? 5 : 0 },
+    { label: "T1 hypointensity", value: input.t1Hypointensity ? 5 : 0 },
+    { label: "Gait impairment", value: input.gaitImpairment ? 5 : 0 },
+  ]
+}
+
 /** Supplementary Table S4: prespecified additive risk-score contributions. */
 export function calculateNeurologicRiskScore(input: Inputs): number {
-  const severity = classifySeverity(input.mjoa)
-  let score = severity === "Mild" ? 20 : severity === "Moderate" ? 45 : 65
-
-  if (input.symptomDuration <= 6) score -= 5
-  else if (input.symptomDuration >= 24) score += 10
-
-  if (input.t2Signal === "focal") score += 5
-  if (input.t2Signal === "multilevel") score += 10
-
-  if (input.canalRatio === "50-60%") score += 2
-  if (input.canalRatio === ">60%") score += 5
-
-  if (input.opll) score += 5
-  if (input.t1Hypointensity) score += 5
-  if (input.gaitImpairment) score += 5
-
+  const score = getNeurologicRiskComponents(input).reduce((sum, component) => sum + component.value, 0)
   return Math.max(0, Math.min(100, Math.round(score)))
 }
 
@@ -130,6 +136,7 @@ export function calculateOutputs(input: Inputs): Outputs {
   return {
     severity,
     neurologicRiskScore: riskScore,
+    riskComponents: getNeurologicRiskComponents(input),
     treatmentCategory,
     probabilityMCID: anchor.mcid,
     probabilityState: anchor.state,

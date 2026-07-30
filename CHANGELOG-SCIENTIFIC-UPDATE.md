@@ -27,3 +27,10 @@ The manuscript describes graded mild-DCM treatment logic but does not publish th
 - Renamed the action to “Apply research framework.”
 - Reorganized results into a clinically familiar hierarchy with improved visual contrast, spacing, and print behavior.
 - Clarified when surgical-corridor classification is considered and retained uncertainty language.
+
+## Visual interpretation update
+- Added a transparent component chart showing the prespecified contributions to the neurologic-concern index.
+- Added a severity-stratified benchmark comparison for MCID achievement and postoperative mJOA ≥16.
+- Added an expandable synthetic-cohort management-category distribution chart.
+- Avoided gauges, traffic-light risk zones, survival curves, and patient-specific trajectory graphics that could imply unsupported calibration or individualized prediction.
+- Rewrote `.gitignore` as standard UTF-8 text and expanded exclusions for generated deployment folders.

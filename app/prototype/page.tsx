@@ -205,6 +205,10 @@ export default function PrototypePage() {
                   />
                 </div>
 
+                <RiskCompositionChart components={result.riskComponents} score={result.neurologicRiskScore} />
+
+                <SeverityBenchmarkChart currentSeverity={result.severity} />
+
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_35px_rgba(15,23,42,0.05)] md:p-7">
                   <div className="flex items-start gap-4">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-lg text-slate-600">⇄</div>
@@ -231,6 +235,8 @@ export default function PrototypePage() {
                     </ul>
                   </div>
                 </div>
+
+                <TreatmentDistributionChart currentCategory={result.treatmentCategory} />
 
                 <button type="button" onClick={() => window.print()} className="print:hidden w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-sm font-bold text-slate-800 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200">
                   Print or save research summary as PDF
@@ -265,6 +271,125 @@ function FieldBadge({ type }: { type: FieldType }) {
 function LegendPill({ type }: { type: FieldType }) {
   const text = type === "framework" ? "Framework input" : type === "recorded" ? "Recorded, not calculated" : "Automatically derived"
   return <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600"><span className={`h-2 w-2 rounded-full ${type === "framework" ? "bg-teal-600" : type === "recorded" ? "bg-slate-400" : "bg-blue-500"}`} />{text}</span>
+}
+
+function RiskCompositionChart({ components, score }: { components: Outputs["riskComponents"]; score: number }) {
+  const visible = components.filter((component) => component.value !== 0)
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_35px_rgba(15,23,42,0.05)] md:p-7">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-teal-700">Transparent score composition</p>
+          <h3 className="mt-1 text-lg font-bold text-slate-950">Factors contributing to the neurologic-concern index</h3>
+        </div>
+        <span className="text-sm font-bold text-slate-700">Total {score}/100</span>
+      </div>
+      <div className="mt-6 space-y-4">
+        {visible.map((component) => {
+          const width = Math.max(4, Math.abs(component.value))
+          const negative = component.value < 0
+          return (
+            <div key={component.label}>
+              <div className="mb-1.5 flex items-center justify-between gap-4 text-xs">
+                <span className="font-medium text-slate-700">{component.label}</span>
+                <span className={`font-bold ${negative ? "text-blue-700" : "text-teal-800"}`}>{component.value > 0 ? "+" : ""}{component.value}</span>
+              </div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                <div className={`h-full rounded-full ${negative ? "bg-blue-500" : "bg-teal-700"}`} style={{ width: `${width}%` }} />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      <p className="mt-5 border-t border-slate-100 pt-4 text-xs leading-5 text-slate-500">Additive framework components from prespecified weights. Bar length reflects score contribution, not an independently estimated clinical effect.</p>
+    </div>
+  )
+}
+
+const severityBenchmarks = [
+  { severity: "Mild", mcid: 94.2, state: 98.0 },
+  { severity: "Moderate", mcid: 73.4, state: 48.4 },
+  { severity: "Severe", mcid: 48.8, state: 2.2 },
+] as const
+
+function SeverityBenchmarkChart({ currentSeverity }: { currentSeverity: Outputs["severity"] }) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_35px_rgba(15,23,42,0.05)] md:p-7">
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Cohort context</p>
+        <h3 className="mt-1 text-lg font-bold text-slate-950">Synthetic cohort outcomes by baseline DCM severity</h3>
+      </div>
+      <div className="mt-5 flex flex-wrap gap-4 text-xs text-slate-600">
+        <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-teal-700" />Severity-specific MCID achieved</span>
+        <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-slate-400" />Postoperative mJOA ≥16</span>
+      </div>
+      <div className="mt-6 grid gap-5 sm:grid-cols-3">
+        {severityBenchmarks.map((row) => {
+          const active = row.severity === currentSeverity
+          return (
+            <div key={row.severity} className={`rounded-2xl border p-4 ${active ? "border-teal-300 bg-teal-50/60 ring-1 ring-teal-100" : "border-slate-200 bg-slate-50/50"}`}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-bold text-slate-900">{row.severity}</span>
+                {active && <span className="rounded-full bg-teal-700 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Current severity</span>}
+              </div>
+              <div className="mt-4 space-y-4">
+                <BenchmarkBar label="MCID" value={row.mcid} tone="teal" />
+                <BenchmarkBar label="mJOA ≥16" value={row.state} tone="slate" />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      <p className="mt-5 border-t border-slate-100 pt-4 text-xs leading-5 text-slate-500">Descriptive 12-month results from the literature-informed synthetic cohort. These values are not individualized estimates.</p>
+    </div>
+  )
+}
+
+function BenchmarkBar({ label, value, tone }: { label: string; value: number; tone: "teal" | "slate" }) {
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between text-xs"><span className="text-slate-600">{label}</span><span className="font-bold text-slate-900">{value.toFixed(1)}%</span></div>
+      <div className="h-2.5 overflow-hidden rounded-full bg-white ring-1 ring-slate-200"><div className={`h-full rounded-full ${tone === "teal" ? "bg-teal-700" : "bg-slate-400"}`} style={{ width: `${value}%` }} /></div>
+    </div>
+  )
+}
+
+const treatmentDistribution = [
+  { category: "Surgery recommended", value: 69.2 },
+  { category: "Surgery favored", value: 11.4 },
+  { category: "Shared decision-making / structured rehabilitation", value: 19.0 },
+  { category: "Structured rehabilitation with surveillance", value: 0.4 },
+] as const
+
+function TreatmentDistributionChart({ currentCategory }: { currentCategory: Outputs["treatmentCategory"] }) {
+  return (
+    <details open className="group rounded-3xl border border-slate-200 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.05)]">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 md:px-7">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Research cohort context</p>
+          <h3 className="mt-1 text-base font-bold text-slate-950">Management-category distribution</h3>
+        </div>
+        <span className="text-lg text-slate-400 transition group-open:rotate-180" aria-hidden>⌄</span>
+      </summary>
+      <div className="border-t border-slate-100 px-6 pb-6 pt-5 md:px-7 md:pb-7">
+        <div className="space-y-4">
+          {treatmentDistribution.map((row) => {
+            const active = row.category === currentCategory
+            return (
+              <div key={row.category}>
+                <div className="mb-1.5 flex items-start justify-between gap-4 text-xs">
+                  <span className={`font-medium ${active ? "text-teal-900" : "text-slate-700"}`}>{row.category}{active ? " · current framework category" : ""}</span>
+                  <span className="font-bold text-slate-900">{row.value.toFixed(1)}%</span>
+                </div>
+                <div className="h-2.5 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${active ? "bg-teal-700" : "bg-slate-400"}`} style={{ width: `${Math.max(row.value, 1)}%` }} /></div>
+              </div>
+            )
+          })}
+        </div>
+        <p className="mt-5 text-xs leading-5 text-slate-500">Overall distribution in the synthetic development cohort. It reflects embedded framework assumptions and is not an observed clinical treatment rate.</p>
+      </div>
+    </details>
+  )
 }
 
 function Metric({ title, value, detail, emphasized = false }: { title: string; value: string; detail: string; emphasized?: boolean }) {
