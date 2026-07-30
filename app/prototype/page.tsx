@@ -166,6 +166,8 @@ export default function PrototypePage() {
                   The values below describe framework behavior and severity-stratified synthetic-cohort results. They are not individualized clinical predictions.
                 </div>
 
+                <KeyFindingBanner result={result} />
+
                 <ClinicalSummary result={result} />
 
                 <OutputDrivers result={result} />
@@ -228,6 +230,26 @@ function LegendPill({ type }: { type: FieldType }) {
   return <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600"><span className={`h-2 w-2 rounded-full ${type === "framework" ? "bg-teal-600" : type === "recorded" ? "bg-slate-400" : "bg-blue-500"}`} />{text}</span>
 }
 
+
+function KeyFindingBanner({ result }: { result: Outputs }) {
+  const favorableText = result.severity === "Severe"
+    ? "Meaningful improvement remains possible, while reaching postoperative mJOA ≥16 was uncommon in the severe synthetic subgroup."
+    : result.severity === "Moderate"
+      ? "Meaningful improvement was common in the moderate synthetic subgroup, while about half reached postoperative mJOA ≥16."
+      : "Both meaningful improvement and postoperative mJOA ≥16 were common in the mild synthetic subgroup."
+  return (
+    <section className="rounded-2xl border border-teal-200 bg-teal-50/80 px-5 py-4 shadow-sm">
+      <div className="flex gap-3">
+        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-700 text-sm font-bold text-white" aria-hidden>✓</span>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-teal-800">Key framework finding</p>
+          <p className="mt-1 text-sm leading-6 text-teal-950"><strong>{result.severity} DCM</strong> with a <strong>{result.neurologicRiskScore}/100</strong> relative neurologic-concern index; <strong>{result.treatmentCategory.toLowerCase()}</strong> by the research framework. {favorableText}</p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function ClinicalSummary({ result }: { result: Outputs }) {
   return (
     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.05)]">
@@ -243,10 +265,10 @@ function ClinicalSummary({ result }: { result: Outputs }) {
           <span className="w-fit rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700">{result.severity} DCM</span>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <CompactStat label="Neurologic-concern index" value={`${result.neurologicRiskScore}/100`} note="Relative heuristic index" accent />
-          <CompactStat label="Meaningful improvement" value={`${result.probabilityMCID.toFixed(1)}%`} note="Severity-specific MCID benchmark" />
-          <CompactStat label="Favorable neurologic state" value={`${result.probabilityState.toFixed(1)}%`} note="Postoperative mJOA ≥16 benchmark" />
-          <CompactStat label="Mean postoperative mJOA" value={result.meanPostoperativeMjoa.toFixed(1)} note="Synthetic 12-month subgroup mean" />
+          <CompactStat label="Neurologic-concern index" value={`${result.neurologicRiskScore}/100`} note="Heuristic index · not probability" tone="teal" />
+          <CompactStat label="Meaningful improvement" value={`${result.probabilityMCID.toFixed(1)}%`} note="Severity-specific MCID benchmark" tone="emerald" />
+          <CompactStat label="Favorable neurologic state" value={`${result.probabilityState.toFixed(1)}%`} note="Postoperative mJOA ≥16 benchmark" tone="indigo" />
+          <CompactStat label="Mean postoperative mJOA" value={result.meanPostoperativeMjoa.toFixed(1)} note="Synthetic 12-month subgroup mean" tone="slate" />
         </div>
         <p className="mt-4 text-[11px] leading-5 text-slate-500">Cohort benchmarks are descriptive synthetic-cohort results, not individualized estimates. The neurologic-concern index is not a probability and has no defined time horizon.</p>
       </div>
@@ -254,12 +276,19 @@ function ClinicalSummary({ result }: { result: Outputs }) {
   )
 }
 
-function CompactStat({ label, value, note, accent = false }: { label: string; value: string; note: string; accent?: boolean }) {
-  return <div className={`rounded-2xl border px-4 py-3.5 ${accent ? "border-teal-200 bg-teal-50/50" : "border-slate-200 bg-slate-50/50"}`}><p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">{label}</p><p className="mt-1 text-2xl font-bold tracking-tight text-slate-950">{value}</p><p className="mt-1 text-[11px] leading-4 text-slate-500">{note}</p></div>
+function CompactStat({ label, value, note, tone }: { label: string; value: string; note: string; tone: "teal" | "emerald" | "indigo" | "slate" }) {
+  const styles = {
+    teal: "border-teal-200 bg-teal-50/60 text-teal-900",
+    emerald: "border-emerald-200 bg-emerald-50/60 text-emerald-900",
+    indigo: "border-indigo-200 bg-indigo-50/60 text-indigo-900",
+    slate: "border-slate-200 bg-slate-50/70 text-slate-900",
+  }
+  return <div className={`rounded-2xl border px-4 py-3.5 ${styles[tone]}`}><p className="text-[10px] font-bold uppercase tracking-[0.1em] opacity-70">{label}</p><p className="mt-1 text-2xl font-bold tracking-tight">{value}</p><p className="mt-1 text-[11px] leading-4 opacity-70">{note}</p></div>
 }
 
 function OutputDrivers({ result }: { result: Outputs }) {
   const visible = result.riskComponents.filter((component) => component.value !== 0)
+  const primaryValue = Math.max(...visible.map((component) => Math.abs(component.value)))
   const rationaleByLabel = new Map<string, string>()
   result.rationale.forEach((item) => {
     const lower = item.toLowerCase()
@@ -282,7 +311,7 @@ function OutputDrivers({ result }: { result: Outputs }) {
           const negative = component.value < 0
           const width = Math.max(3, Math.abs(component.value))
           return <div key={component.label} className="grid gap-2 py-3 sm:grid-cols-[minmax(140px,0.9fr)_minmax(180px,1.6fr)_70px] sm:items-center">
-            <div className="text-xs font-semibold text-slate-800">{component.label}</div>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-800"><span>{component.label}</span>{Math.abs(component.value) === primaryValue && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-800">Primary driver</span>}</div>
             <div>
               <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${negative ? "bg-blue-500" : "bg-teal-700"}`} style={{ width: `${width}%` }} /></div>
               <p className="mt-1 text-[11px] leading-4 text-slate-500">{rationaleByLabel.get(component.label) ?? "Prespecified additive framework contribution."}</p>
@@ -332,11 +361,24 @@ function MiniBar({ label, value, tone }: { label: string; value: number; tone: "
 
 function PlanningBoundaries({ corridor }: { corridor: Outputs["corridor"] }) {
   return (
-    <section className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_35px_rgba(15,23,42,0.05)] md:p-7 lg:grid-cols-[0.9fr_1.1fr]">
-      <div><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Broad surgical-corridor phenotype</p><h3 className="mt-2 text-lg font-bold text-slate-900">{corridor ?? "Not assigned"}</h3><p className="mt-2 text-xs leading-5 text-slate-500">Assigned only when surgery is favored or recommended. Posterior favored does not distinguish laminoplasty from posterior decompression with fusion.</p></div>
-      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3"><p className="text-xs font-bold text-slate-800">Additional planning review still required</p><p className="mt-2 text-xs leading-5 text-slate-600">Compression direction, cervical alignment, K-line status, instability, axial pain, bone quality, and detailed OPLL morphology are not fully represented.</p></div>
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_35px_rgba(15,23,42,0.05)] md:p-7">
+      <div><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Clinical planning readiness</p><h3 className="mt-1 text-lg font-bold text-slate-950">What the framework can—and cannot—support</h3></div>
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <StatusTile title="Management category available" status="Available" tone="teal" />
+        <StatusTile title="Broad corridor phenotype" status={corridor ?? "Not assigned"} tone={corridor ? "teal" : "amber"} />
+        <StatusTile title="Procedure-level planning" status="Incomplete" tone="amber" />
+      </div>
+      <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <p className="text-xs font-bold text-amber-950">Additional planning review still required</p>
+        <p className="mt-1.5 text-xs leading-5 text-amber-900">Compression direction, cervical alignment, K-line status, instability, axial pain, bone quality, and detailed OPLL morphology are not fully represented. A posterior-favored designation does not distinguish laminoplasty from posterior decompression with fusion.</p>
+      </div>
     </section>
   )
+}
+
+function StatusTile({ title, status, tone }: { title: string; status: string; tone: "teal" | "amber" }) {
+  const styles = tone === "teal" ? "border-teal-200 bg-teal-50 text-teal-900" : "border-amber-200 bg-amber-50 text-amber-950"
+  return <div className={`rounded-2xl border px-4 py-3 ${styles}`}><p className="text-[10px] font-bold uppercase tracking-[0.1em] opacity-70">{title}</p><p className="mt-1 text-sm font-bold">{status}</p></div>
 }
 
 const treatmentDistribution = [
